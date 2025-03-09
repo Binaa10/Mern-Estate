@@ -1,26 +1,21 @@
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import "./index.css";
+import Home from "./pages/Home";
+import About from "./pages/About";
+import Profile from "./pages/Profile";
+import SignIn from "./pages/SignIn";
+import SignUp from "./pages/SignUp";
 
 export default function App() {
   return (
-    <div className="bg-slate-600">
-      <h1 className="text-red-900">dsfsdfsd</h1>
-      <div className="bg-red-500 text-white p-4">Hello, Tailwind!</div>
-      <button class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-        Click Me
-      </button>
-      <div class="max-w-sm mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
-        <img
-          class="w-full h-48 object-cover"
-          src="https://via.placeholder.com/300"
-          alt="Image"
-        />
-        <div class="p-4">
-          <h2 class="text-xl font-semibold text-gray-800">Card Title</h2>
-          <p class="text-gray-600">
-            This is a simple card component with Tailwind CSS.
-          </p>
-        </div>
-      </div>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />}></Route>
+        <Route path="/about" element={<About />}></Route>
+        <Route path="/profile" element={<Profile />}></Route>
+        <Route path="/sign-in" element={<SignIn />}></Route>
+        <Route path="/sign-up" element={<SignUp />}></Route>
+      </Routes>
+    </BrowserRouter>
   );
 }
