@@ -12,4 +12,4 @@ createRoot(document.getElementById("root")).render(
       <App />
     </PersistGate>
   </Provider>
-); 
+);
