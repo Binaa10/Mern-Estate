@@ -6,7 +6,7 @@ export default function SignIn() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const handleChange = (e) => {
+  const handleChange = (e) => { 
     setFormData({
       ...formData,
       [e.target.id]: e.target.value,
