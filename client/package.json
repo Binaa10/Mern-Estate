@@ -11,10 +11,8 @@
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.6.1",
-<<<<<<< HEAD
+
     "firebase": "^11.4.0",
-=======
->>>>>>> 4582ba938212d83efeeaf709c00eca4e781d4bf6
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-icons": "^5.5.0",

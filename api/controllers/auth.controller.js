@@ -11,11 +11,8 @@ export const signup = async (req, res, next) => {
     await newUser.save();
     res.status(201).json("user created successfully");
   } catch (error) {
-<<<<<<< HEAD
     next(error);
-=======
-    next(error); 
->>>>>>> 4582ba938212d83efeeaf709c00eca4e781d4bf6
+    next(error);
   }
 };
 
@@ -36,7 +33,6 @@ export const signin = async (req, res, next) => {
     next(error);
   }
 };
-<<<<<<< HEAD
 
 export const google = async (req, res, next) => {
   try {
@@ -73,5 +69,3 @@ export const google = async (req, res, next) => {
     next(error);
   }
 };
-=======
->>>>>>> 4582ba938212d83efeeaf709c00eca4e781d4bf6

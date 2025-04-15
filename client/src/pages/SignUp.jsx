@@ -1,9 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-<<<<<<< HEAD
 import OAuth from "../components/OAuth.jsx";
-=======
->>>>>>> 4582ba938212d83efeeaf709c00eca4e781d4bf6
 
 export default function SignUp() {
   const [formData, setFormData] = useState({});
@@ -20,10 +17,6 @@ export default function SignUp() {
     e.preventDefault();
     try {
       setLoading(true);
-<<<<<<< HEAD
-=======
-      
->>>>>>> 4582ba938212d83efeeaf709c00eca4e781d4bf6
 
       const res = await fetch("/api/auth/signup", {
         method: "post",
@@ -80,10 +73,7 @@ export default function SignUp() {
         >
           {loading ? "Loading..." : "SignUp"}
         </button>
-<<<<<<< HEAD
         <OAuth />
-=======
->>>>>>> 4582ba938212d83efeeaf709c00eca4e781d4bf6
       </form>
       <div className="flex gap-2 mt-5">
         <p>Have an account?</p>
@@ -95,7 +85,3 @@ export default function SignUp() {
     </div>
   );
 }
-<<<<<<< HEAD
-=======
-
->>>>>>> 4582ba938212d83efeeaf709c00eca4e781d4bf6
