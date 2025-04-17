@@ -56,10 +56,10 @@ export default function Profile() {
 
   return (
     <div>
-      <div className="max-w-lg mx-auto p-3 mt-7">
-        <h1 className="text-3xl font-semibold text-center">Profile</h1>
+      <div className="max-w-lg mx-auto p-3 ">
+        <h1 className="text-3xl font-semibold text-center my-7">Profile</h1>
 
-        <form className="flex mt-7 flex-col gap-4">
+        <form className="flex flex-col gap-4">
           <input
             onChange={handleFileChange}
             type="file"
@@ -70,7 +70,7 @@ export default function Profile() {
 
           <img
             onClick={() => fileRef.current.click()}
-            className="rounded-full h-24 w-24 self-center object-cover cursor-pointer border"
+            className="rounded-full h-24 w-24 self-center object-cover cursor-pointer mt-2"
             src={
               imageUrl ||
               currentUser?.avatar ||
@@ -87,33 +87,36 @@ export default function Profile() {
                   Image uploaded successfully!{" "}
                 </span>
               ) : (
-                <span className="text-slate-700">Uploading...</span>
+                <span className="text-slate-700 ">Uploading...</span>
               )}
             </p>
           )}
 
           <input
+            id="username"
             type="text"
             placeholder="username"
-            className="border-slate-400 focus:outline-none bg-white border rounded-lg p-2.5"
+            className="border p-3 rounded-lg"
           />
           <input
+            id="email"
             type="email"
             placeholder="email"
-            className="border-slate-400 focus:outline-none bg-white border rounded-lg p-2.5"
+            className="border p-3 rounded-lg"
           />
           <input
+            id="password"
             type="password"
             placeholder="password"
-            className="border-slate-400 focus:outline-none bg-white border rounded-lg p-2.5"
+            className="border p-3 rounded-lg"
           />
 
-          <button className="bg-slate-800 p-2.5 text-white uppercase rounded-lg hover:opacity-95 disabled:opacity-80">
+          <button className="bg-slate-800 p-3 text-white uppercase rounded-lg hover:opacity-95 disabled:opacity-80">
             Update
           </button>
         </form>
 
-        <div className="flex justify-between mt-4">
+        <div className="flex justify-between mt-5">
           <span className="text-red-800 cursor-pointer">Delete account</span>
           <span className="text-red-800 cursor-pointer">Sign out</span>
         </div>
