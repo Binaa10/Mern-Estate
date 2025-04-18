@@ -6,6 +6,9 @@ import {
   updateUserStart,
   updateUserSuccess,
   updateUserFailure,
+  deleteUserFailure,
+  deleteUserStart,
+  deleteUserSuccess,
 } from "../redux/user/userSlice.js";
 import { useDispatch } from "react-redux";
 
@@ -19,6 +22,7 @@ export default function Profile() {
   const [formData, setFormData] = useState({});
   const [updateSuccess, setUpdateSuccess] = useState(false);
   const dispatch = useDispatch();
+  console.log(uploadProgress);
 
   //console.log(formData);
   //console.log(file);
@@ -80,7 +84,7 @@ export default function Profile() {
       const res = await fetch(`/api/user/update/${currentUser._id}`, {
         method: "POST",
         headers: {
-          "content-Type": "application/json",
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(formData), // ✅ fix typo
       });
@@ -93,6 +97,26 @@ export default function Profile() {
       setUpdateSuccess(true);
     } catch (error) {
       dispatch(updateUserFailure(error.message));
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    dispatch(deleteUserStart());
+    try {
+      const res = await fetch(`/api/user/delete/${currentUser._id}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      const data = await res.json();
+      if (data.success === false) {
+        dispatch(deleteUserFailure(data.message));
+        return;
+      }
+      dispatch(deleteUserSuccess(data));
+    } catch (error) {
+      dispatch(deleteUserFailure(error.message));
     }
   };
 
@@ -167,7 +191,12 @@ export default function Profile() {
         </form>
 
         <div className="flex justify-between mt-5">
-          <span className="text-red-800 cursor-pointer">Delete account</span>
+          <span
+            onClick={handleDeleteUser}
+            className="text-red-800 cursor-pointer"
+          >
+            Delete account
+          </span>
           <span className="text-red-800 cursor-pointer">Sign out</span>
         </div>
         <p className="text-red-700 mt-5">{error ? error : ""}</p>

@@ -14,7 +14,7 @@ export default function OAuth() {
       const res = await fetch("/api/auth/google", {
         method: "post",
         headers: {
-          "content-Type": "application/json",
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           name: result.user.displayName,
