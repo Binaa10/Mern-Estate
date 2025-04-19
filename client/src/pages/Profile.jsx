@@ -11,8 +11,10 @@ import {
   deleteUserSuccess,
   signOutUserFailure,
   signOutUserSuccess,
+  signOutUserStart,
 } from "../redux/user/userSlice.js";
 import { useDispatch } from "react-redux";
+import { Link } from "react-router-dom";
 
 export default function Profile() {
   const { currentUser, loading, error } = useSelector((state) => state.user);
@@ -124,6 +126,7 @@ export default function Profile() {
 
   const handleSignOut = async () => {
     try {
+      dispatch(signOutUserStart());
       const res = await fetch("/api/auth/signout");
       const data = await res.json();
       if (data.success === false) {
@@ -204,6 +207,12 @@ export default function Profile() {
           >
             {loading ? "Loading..." : "Update"}
           </button>
+          <Link
+            to={"/create-listing"}
+            className="bg-green-700 p-3 rounded-lg text-white uppercase text-center hover:opacity-95 "
+          >
+            create listing
+          </Link>
         </form>
 
         <div className="flex justify-between mt-5">
