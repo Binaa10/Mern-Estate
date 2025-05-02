@@ -8,6 +8,8 @@ export default function CreateListing() {
   const navigate = useNavigate();
   const { currentUser } = useSelector((state) => state.user);
   const [files, setFiles] = useState([]);
+  const [toastMessage, setToastMessage] = useState("");
+  const [showToast, setShowToast] = useState(false);
   const [formData, setFormData] = useState({
     imageUrls: [],
     name: "",
@@ -30,6 +32,16 @@ export default function CreateListing() {
 
   const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
   const MAX_FILE_COUNT = 6;
+
+  const showToastMessage = (message) => {
+    setToastMessage(message); // Set the toast message to display
+    setShowToast(true); // Make the toast visible
+
+    // Hide the toast after 3 seconds
+    setTimeout(() => {
+      setShowToast(false); // Set the toast visibility to false after 3 seconds
+    }, 1500); // Adjust this timeout duration as needed
+  };
 
   const handleImageSubmit = async (e) => {
     e.preventDefault();
@@ -149,7 +161,10 @@ export default function CreateListing() {
       if (data.success === false) {
         setError(data.message);
       }
-      navigate(`/listing/${data._id}`);
+      showToastMessage("listing created successfully!");
+      setTimeout(() => {
+        navigate(`/listing/${data._id}`);
+      }, 1500); // matches the toast duration
     } catch (error) {
       setError(error.message);
       setLoading(false);
@@ -158,6 +173,12 @@ export default function CreateListing() {
 
   return (
     <main className="p-3 max-w-4xl mx-auto">
+      {/* Toast message top-right */}
+      {showToast && (
+        <div className="fixed top-5 right-5 bg-green-600 text-white px-4 py-2 rounded shadow-lg z-50">
+          {toastMessage}
+        </div>
+      )}
       <h1 className="text-3xl font-semibold text-center my-7">
         Create a Listing
       </h1>

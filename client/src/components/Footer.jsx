@@ -60,7 +60,7 @@ export default function Footer() {
             <a
               href="https://github.com/Binaa10"
               aria-label="GitHub"
-              className="hover:text-gray-300"
+              className="hover:text-blue-500"
             >
               <FaGithub />
             </a>

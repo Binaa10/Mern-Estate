@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { storage } from "../appWrite/appwriteConfig.js";
 import { ID, Permission, Role } from "appwrite";
 import {
@@ -13,10 +13,11 @@ import {
   signOutUserSuccess,
   signOutUserStart,
 } from "../redux/user/userSlice.js";
-import { useDispatch } from "react-redux";
 import { Link } from "react-router-dom";
+//import { useNavigate } from "react-router-dom";
 
 export default function Profile() {
+  //const navigate = useNavigate();
   const { currentUser, loading, error } = useSelector((state) => state.user);
   const fileRef = useRef(null);
   const [file, setFile] = useState(null);
@@ -24,15 +25,29 @@ export default function Profile() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadComplete, setUploadComplete] = useState(false);
   const [formData, setFormData] = useState({});
-  const [updateSuccess, setUpdateSuccess] = useState(false);
   const [showListingsError, setShowlistingsError] = useState(false);
   const [userListings, setUserListings] = useState([]);
-  const dispatch = useDispatch();
-  console.log(uploadProgress);
+  const [toastMessage, setToastMessage] = useState("");
+  const [showToast, setShowToast] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [loadingListings, setLoadingListings] = useState(false);
+  const [showUploadMessage, setShowUploadMessage] = useState(false);
+  const [showListings, setShowListings] = useState(false);
+  const [noListingsMessage, setNoListingsMessage] = useState(false);
 
-  //console.log(formData);
-  //console.log(file);
-  //console.log(currentUser);
+  const dispatch = useDispatch();
+  console.log("showToast:", showToast);
+
+  const showToastMessage = (message) => {
+    setToastMessage(message); // Set the toast message to display
+    setShowToast(true); // Make the toast visible
+
+    // Hide the toast after 3 seconds
+    setTimeout(() => {
+      setShowToast(false); // Set the toast visibility to false after 3 seconds
+    }, 1500); // Adjust this timeout duration as needed
+  };
+  console.log("toastMessage:", toastMessage);
 
   const handleFileChange = (event) => {
     const selectedFile = event.target.files[0];
@@ -40,6 +55,7 @@ export default function Profile() {
       setFile(selectedFile);
       setUploadProgress(0);
       setUploadComplete(false);
+      setShowUploadMessage(true); // show upload messages
     }
   };
 
@@ -66,21 +82,21 @@ export default function Profile() {
       );
 
       setImageUrl(previewUrl);
-      const updatedData = { ...formData, avatar: previewUrl }; // ✅ fix here
+      const updatedData = { ...formData, avatar: previewUrl };
       setFormData(updatedData);
       setUploadComplete(true);
+      setTimeout(() => {
+        setUploadComplete(false);
+        setShowUploadMessage(false);
+      }, 2000); // hides after 2 seconds
     } catch (error) {
       console.error("Upload failed:", error);
     }
   };
 
-  //console.log(imageUrl);
-  console.log(formData);
-
   const handleChange = (e) => {
     const updatedData = { ...formData, [e.target.id]: e.target.value };
     setFormData(updatedData);
-    //console.log(updatedData); // 👈 Logs full object
   };
 
   const handleSubmit = async (e) => {
@@ -89,10 +105,8 @@ export default function Profile() {
       dispatch(updateUserStart());
       const res = await fetch(`/api/user/update/${currentUser._id}`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData), // ✅ fix typo
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
       });
       const data = await res.json();
       if (data.success === false) {
@@ -100,7 +114,7 @@ export default function Profile() {
         return;
       }
       dispatch(updateUserSuccess(data));
-      setUpdateSuccess(true);
+      showToastMessage("Profile updated successfully!");
     } catch (error) {
       dispatch(updateUserFailure(error.message));
     }
@@ -111,16 +125,17 @@ export default function Profile() {
     try {
       const res = await fetch(`/api/user/delete/${currentUser._id}`, {
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
       });
       const data = await res.json();
       if (data.success === false) {
         dispatch(deleteUserFailure(data.message));
         return;
       }
-      dispatch(deleteUserSuccess(data));
+      showToastMessage("user deleted successfully!");
+      setTimeout(() => {
+        dispatch(deleteUserSuccess(data));
+      }, 1500);
     } catch (error) {
       dispatch(deleteUserFailure(error.message));
     }
@@ -131,17 +146,31 @@ export default function Profile() {
       dispatch(signOutUserStart());
       const res = await fetch("/api/auth/signout");
       const data = await res.json();
+
       if (data.success === false) {
         dispatch(signOutUserFailure(data));
         return;
       }
-      dispatch(signOutUserSuccess(data));
+
+      // Step 1: Show toast first
+      showToastMessage("Signed out successfully!");
+
+      // Step 2: Delay user clearing and navigation
+      setTimeout(() => {
+        dispatch(signOutUserSuccess(data));
+      }, 1000); // Wait 3s for toast to display
     } catch (error) {
       dispatch(signOutUserFailure(error));
     }
   };
 
   const handleShowListings = async () => {
+    if (showListings) {
+      setShowListings(false);
+      return;
+    }
+
+    setLoadingListings(true);
     try {
       setShowlistingsError(false);
       const res = await fetch(`/api/user/listings/${currentUser._id}`);
@@ -150,9 +179,20 @@ export default function Profile() {
         setShowlistingsError(true);
         return;
       }
+
       setUserListings(data);
+
+      if (data.length === 0) {
+        setNoListingsMessage(true);
+        setShowListings(false); // Keep it false if no listings
+        setTimeout(() => setNoListingsMessage(false), 2000);
+      } else {
+        setShowListings(true); // Only show listings if there are any
+      }
     } catch (error) {
       setShowlistingsError(true);
+    } finally {
+      setLoadingListings(false);
     }
   };
 
@@ -169,6 +209,8 @@ export default function Profile() {
       setUserListings((prev) =>
         prev.filter((listing) => listing._id !== listingId)
       );
+
+      showToastMessage("listing deleted successfully!");
     } catch (error) {
       console.log(error.message);
     }
@@ -176,6 +218,13 @@ export default function Profile() {
 
   return (
     <div>
+      {/* Toast message top-right */}
+      {showToast && (
+        <div className="fixed top-5 right-5 bg-green-600 text-white px-4 py-2 rounded shadow-lg z-50">
+          {toastMessage}
+        </div>
+      )}
+
       <div className="max-w-lg mx-auto p-3 ">
         <h1 className="text-3xl font-semibold text-center my-7">Profile</h1>
 
@@ -191,25 +240,27 @@ export default function Profile() {
           <img
             onClick={() => fileRef.current.click()}
             className="rounded-full h-24 w-24 self-center object-cover cursor-pointer mt-2"
-            src={
-              imageUrl ||
-              currentUser?.avatar ||
-              "https://via.placeholder.com/150?text=Profile"
-            }
+            src={imageUrl || currentUser.avatar}
             alt="profile"
           />
 
-          {/* Upload progress display */}
-          {file && (
-            <p className="text-sm text-center mt-1 ">
+          {showUploadMessage && (
+            <div className="flex justify-center items-center mt-1">
               {uploadComplete ? (
-                <span className="text-green-600 font-semibold">
-                  Image uploaded successfully!{" "}
+                <span className="text-green-600 font-semibold text-sm text-center">
+                  Image uploaded successfully!
                 </span>
               ) : (
-                <span className="text-slate-700 ">Uploading...</span>
+                <span className="text-slate-700 flex items-center gap-1 text-sm">
+                  Uploading
+                  <span className="flex gap-1 ml-1">
+                    <span className="w-1.5 h-1.5 bg-green-600 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                    <span className="w-1.5 h-1.5 bg-yellow-600 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                    <span className="w-1.5 h-1.5 bg-red-600 rounded-full animate-bounce"></span>
+                  </span>
+                </span>
               )}
-            </p>
+            </div>
           )}
 
           <input
@@ -251,28 +302,65 @@ export default function Profile() {
         </form>
 
         <div className="flex justify-between mt-5">
+          {/* Trigger delete modal */}
           <span
-            onClick={handleDeleteUser}
+            onClick={() => setShowDeleteModal(true)}
             className="text-red-800 cursor-pointer"
           >
             Delete account
           </span>
+
           <span onClick={handleSignOut} className="text-red-800 cursor-pointer">
             Sign out
           </span>
         </div>
         <p className="text-red-700 mt-5">{error ? error : ""}</p>
-        <p className="text-green-700 mt-4">
-          {updateSuccess ? "user is updated successfully!" : ""}
-        </p>
-        <button onClick={handleShowListings} className="w-full text-green-700 ">
-          Show Listings
+        <button
+          onClick={handleShowListings}
+          disabled={loadingListings}
+          className="w-full text-green-700 flex items-center justify-center gap-3 disabled:opacity-50 font-semibold"
+        >
+          {loadingListings ? (
+            <>
+              <svg
+                className="animate-spin h-8 w-8 text-green-700"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="5"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                ></path>
+              </svg>
+              Loading...
+            </>
+          ) : showListings ? (
+            "Hide Listings"
+          ) : (
+            "Show Listings"
+          )}
         </button>
+        {noListingsMessage && (
+          <p className="text-center text-sm text-red-800 mt-2">
+            You have no listings.
+          </p>
+        )}
+
         <p className="text-red-700 mt-5">
           {showListingsError ? "Error showing listings" : ""}
         </p>
 
-        {userListings && userListings.length > 0 && (
+        {showListings && userListings.length > 0 && (
           <div className="flex flex-col gap-4 ">
             <h1 className="text-2xl text-center mt-7 font-semibold">
               Your listings
@@ -290,7 +378,7 @@ export default function Profile() {
                   />
                 </Link>
                 <Link
-                  className="flex-1 text-slate-700  font-semibold hover:underline truncate"
+                  className="flex-1 text-slate-700 font-semibold hover:underline truncate"
                   to={`/listing/${listing._id}`}
                 >
                   <p>{listing.name}</p>
@@ -303,11 +391,47 @@ export default function Profile() {
                     Delete
                   </button>
                   <Link to={`/update-listing/${listing._id}`}>
-                    <button className="uppercase  text-green-700">edit</button>
+                    <button className="uppercase text-green-700">edit</button>
                   </Link>
                 </div>
               </div>
             ))}
+          </div>
+        )}
+        {showDeleteModal && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-start pt-20"
+            onClick={() => setShowDeleteModal(false)}
+          >
+            <div
+              className="bg-white p-6 rounded-xl shadow-lg w-full max-w-sm mx-4"
+              onClick={(e) => e.stopPropagation()} // Prevent click inside from closing
+            >
+              <h2 className="text-xl font-bold mb-4 text-red-700">
+                Delete Account
+              </h2>
+              <p className="mb-6 text-gray-700">
+                Are you sure you want to delete your account? This action cannot
+                be undone.
+              </p>
+              <div className="flex justify-end gap-4">
+                <button
+                  className="px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400 text-black"
+                  onClick={() => setShowDeleteModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white"
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    handleDeleteUser();
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

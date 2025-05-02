@@ -67,7 +67,7 @@ export default function Header() {
                 alt="profile"
               />
             ) : (
-              <li className="hover:underline text-slate-700">Sign in</li>
+              <li className="hover:underline text-slate-100">Sign in</li>
             )}
           </Link>
         </ul>

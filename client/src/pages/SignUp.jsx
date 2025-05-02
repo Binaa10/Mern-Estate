@@ -6,7 +6,18 @@ export default function SignUp() {
   const [formData, setFormData] = useState({});
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [showToast, setShowToast] = useState(false);
   const navigate = useNavigate();
+  const showToastMessage = (message) => {
+    setToastMessage(message); // Set the toast message to display
+    setShowToast(true); // Make the toast visible
+
+    // Hide the toast after 3 seconds
+    setTimeout(() => {
+      setShowToast(false); // Set the toast visibility to false after 3 seconds
+    }, 1500); // Adjust this timeout duration as needed
+  };
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -34,7 +45,11 @@ export default function SignUp() {
       }
       setLoading(false);
       setError(null);
-      navigate("/sign-in");
+      showToastMessage("user registered successfully!");
+
+      setTimeout(() => {
+        navigate("/sign-in");
+      }, 2500); // Increased delay so toast is visible
     } catch (error) {
       setLoading(false);
       setError(error.message);
@@ -44,6 +59,12 @@ export default function SignUp() {
   console.log(formData);
   return (
     <div className="p-3 max-w-lg mx-auto">
+      {/* Toast message top-right */}
+      {showToast && (
+        <div className="fixed top-5 right-5 bg-green-600 text-white px-4 py-2 rounded shadow-lg z-50">
+          {toastMessage}
+        </div>
+      )}
       <h1 className="text-3xl text-center font-semibold my-7">Sign Up</h1>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 ">
         <input
