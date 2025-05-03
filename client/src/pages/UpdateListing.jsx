@@ -3,12 +3,12 @@ import { storage } from "../appWrite/appwriteConfig.js";
 import { ID, Permission, Role } from "appwrite";
 import { useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
+import toast from "react-hot-toast";
 
 export default function CreateListing() {
   const navigate = useNavigate();
   const params = useParams();
-  const [toastMessage, setToastMessage] = useState("");
-  const [showToast, setShowToast] = useState(false);
+
   const { currentUser } = useSelector((state) => state.user);
   const [files, setFiles] = useState([]);
   const [formData, setFormData] = useState({
@@ -33,16 +33,6 @@ export default function CreateListing() {
 
   const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
   const MAX_FILE_COUNT = 6;
-
-   const showToastMessage = (message) => {
-    setToastMessage(message); // Set the toast message to display
-    setShowToast(true); // Make the toast visible
-
-    // Hide the toast after 3 seconds
-    setTimeout(() => {
-      setShowToast(false); // Set the toast visibility to false after 3 seconds
-    }, 1500); // Adjust this timeout duration as needed
-  };
 
   useEffect(() => {
     const fetchListing = async () => {
@@ -176,11 +166,12 @@ export default function CreateListing() {
       if (data.success === false) {
         setError(data.message);
       }
-
-      showToastMessage("Listing updated successfully!");
-      setTimeout(() => {
-        navigate(`/listing/${data._id}`);
-      }, 1500); // matches the toast duration
+      navigate(`/listing/${data._id}`);
+      toast.success(
+        <span className="text-sm font-medium animate-pulse">
+          Listing updated successfully!
+        </span>
+      );
     } catch (error) {
       setError(error.message);
       setLoading(false);
@@ -189,12 +180,6 @@ export default function CreateListing() {
 
   return (
     <main className="p-3 max-w-4xl mx-auto">
-      {/* Toast message top-right */}
-      {showToast && (
-        <div className="fixed top-5 right-5 bg-green-600 text-white px-4 py-2 rounded shadow-lg z-50">
-          {toastMessage}
-        </div>
-      )}
       <h1 className="text-3xl font-semibold text-center my-7">
         Update a Listing
       </h1>

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { storage } from "../appWrite/appwriteConfig.js";
 import { ID, Permission, Role } from "appwrite";
+import toast from "react-hot-toast";
 import {
   updateUserStart,
   updateUserSuccess,
@@ -14,10 +15,8 @@ import {
   signOutUserStart,
 } from "../redux/user/userSlice.js";
 import { Link } from "react-router-dom";
-//import { useNavigate } from "react-router-dom";
 
 export default function Profile() {
-  //const navigate = useNavigate();
   const { currentUser, loading, error } = useSelector((state) => state.user);
   const fileRef = useRef(null);
   const [file, setFile] = useState(null);
@@ -27,27 +26,16 @@ export default function Profile() {
   const [formData, setFormData] = useState({});
   const [showListingsError, setShowlistingsError] = useState(false);
   const [userListings, setUserListings] = useState([]);
-  const [toastMessage, setToastMessage] = useState("");
-  const [showToast, setShowToast] = useState(false);
+
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [loadingListings, setLoadingListings] = useState(false);
   const [showUploadMessage, setShowUploadMessage] = useState(false);
   const [showListings, setShowListings] = useState(false);
   const [noListingsMessage, setNoListingsMessage] = useState(false);
+  const [showListingDeleteModal, setShowListingDeleteModal] = useState(false);
+  const [listingToDelete, setListingToDelete] = useState(null);
 
   const dispatch = useDispatch();
-  console.log("showToast:", showToast);
-
-  const showToastMessage = (message) => {
-    setToastMessage(message); // Set the toast message to display
-    setShowToast(true); // Make the toast visible
-
-    // Hide the toast after 3 seconds
-    setTimeout(() => {
-      setShowToast(false); // Set the toast visibility to false after 3 seconds
-    }, 1500); // Adjust this timeout duration as needed
-  };
-  console.log("toastMessage:", toastMessage);
 
   const handleFileChange = (event) => {
     const selectedFile = event.target.files[0];
@@ -114,7 +102,11 @@ export default function Profile() {
         return;
       }
       dispatch(updateUserSuccess(data));
-      showToastMessage("Profile updated successfully!");
+      toast.success(
+        <span className="text-sm font-medium animate-pulse">
+          Profile updated successfully!
+        </span>
+      );
     } catch (error) {
       dispatch(updateUserFailure(error.message));
     }
@@ -132,10 +124,12 @@ export default function Profile() {
         dispatch(deleteUserFailure(data.message));
         return;
       }
-      showToastMessage("user deleted successfully!");
-      setTimeout(() => {
-        dispatch(deleteUserSuccess(data));
-      }, 1500);
+      dispatch(deleteUserSuccess(data));
+      toast.success(
+        <span className="text-sm font-medium animate-pulse">
+          user deleted successfully!
+        </span>
+      );
     } catch (error) {
       dispatch(deleteUserFailure(error.message));
     }
@@ -151,14 +145,12 @@ export default function Profile() {
         dispatch(signOutUserFailure(data));
         return;
       }
-
-      // Step 1: Show toast first
-      showToastMessage("Signed out successfully!");
-
-      // Step 2: Delay user clearing and navigation
-      setTimeout(() => {
-        dispatch(signOutUserSuccess(data));
-      }, 1000); // Wait 3s for toast to display
+      dispatch(signOutUserSuccess(data));
+      toast.success(
+        <span className="text-sm font-medium animate-pulse">
+          Signed out successfully!
+        </span>
+      );
     } catch (error) {
       dispatch(signOutUserFailure(error));
     }
@@ -206,11 +198,23 @@ export default function Profile() {
         console.log(data.message);
         return;
       }
-      setUserListings((prev) =>
-        prev.filter((listing) => listing._id !== listingId)
-      );
+      setUserListings((prev) => {
+        const updatedListings = prev.filter(
+          (listing) => listing._id !== listingId
+        );
+        if (updatedListings.length === 0) {
+          setShowListings(false);
+          setNoListingsMessage(true);
+          setTimeout(() => setNoListingsMessage(false), 2000);
+        }
+        return updatedListings;
+      });
 
-      showToastMessage("listing deleted successfully!");
+      toast.success(
+        <span className="text-sm font-medium animate-pulse">
+          listing deleted successfully!
+        </span>
+      );
     } catch (error) {
       console.log(error.message);
     }
@@ -218,13 +222,6 @@ export default function Profile() {
 
   return (
     <div>
-      {/* Toast message top-right */}
-      {showToast && (
-        <div className="fixed top-5 right-5 bg-green-600 text-white px-4 py-2 rounded shadow-lg z-50">
-          {toastMessage}
-        </div>
-      )}
-
       <div className="max-w-lg mx-auto p-3 ">
         <h1 className="text-3xl font-semibold text-center my-7">Profile</h1>
 
@@ -254,9 +251,9 @@ export default function Profile() {
                 <span className="text-slate-700 flex items-center gap-1 text-sm">
                   Uploading
                   <span className="flex gap-1 ml-1">
-                    <span className="w-1.5 h-1.5 bg-green-600 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                    <span className="w-1.5 h-1.5 bg-yellow-600 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                    <span className="w-1.5 h-1.5 bg-red-600 rounded-full animate-bounce"></span>
+                    <span className="w-2 h-2 bg-green-600 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                    <span className="w-2 h-2 bg-yellow-600 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                    <span className="w-2 h-2 bg-red-600 rounded-full animate-bounce"></span>
                   </span>
                 </span>
               )}
@@ -385,7 +382,10 @@ export default function Profile() {
                 </Link>
                 <div className="flex flex-col items-center">
                   <button
-                    onClick={() => handleListingDelete(listing._id)}
+                    onClick={() => {
+                      setListingToDelete(listing._id);
+                      setShowListingDeleteModal(true);
+                    }}
                     className="uppercase text-red-700"
                   >
                     Delete
@@ -426,6 +426,42 @@ export default function Profile() {
                   onClick={() => {
                     setShowDeleteModal(false);
                     handleDeleteUser();
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {showListingDeleteModal && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-start pt-20"
+            onClick={() => setShowListingDeleteModal(false)}
+          >
+            <div
+              className="bg-white p-6 rounded-xl shadow-lg w-full max-w-sm mx-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="text-xl font-bold mb-4 text-red-700">
+                Delete Listing
+              </h2>
+              <p className="mb-6 text-gray-700">
+                Are you sure you want to delete this listing? This action cannot
+                be undone.
+              </p>
+              <div className="flex justify-end gap-4">
+                <button
+                  className="px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400 text-black"
+                  onClick={() => setShowListingDeleteModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white"
+                  onClick={() => {
+                    handleListingDelete(listingToDelete);
+                    setShowListingDeleteModal(false);
                   }}
                 >
                   Delete
