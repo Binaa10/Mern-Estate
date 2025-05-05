@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ListingItem from "../components/ListingItem";
+import Lottie from "lottie-react";
+import animationData from "../assets/loading.json";
+// Adjust path if needed
 
 export default function Search() {
   const navigate = useNavigate();
@@ -227,15 +230,28 @@ export default function Search() {
         <h1 className="text-3xl font-semibold border-b p-3 text-slate-700 mt-5">
           Listing results:
         </h1>
+        {loading && (
+          <div className="flex flex-col gap-1">
+            <div className="flex justify-center items-center flex-col  h-screen">
+              <Lottie
+                animationData={animationData}
+                loop={true}
+                className="w-64 h-64"
+                style={{
+                  filter:
+                    "invert(50%) sepia(45%) saturate(1027%) hue-rotate(200deg) brightness(93%) contrast(90%)",
+                }}
+              />
+              <p className="text-slate-700 text-xl text-center">Loading...</p>
+            </div>
+          </div>
+        )}
+
         <div className="p-7 flex flex-wrap gap-4">
           {!loading && listings.length === 0 && (
             <p className="text-xl text-slate-700">No listing found!</p>
           )}
-          {loading && (
-            <p className="text-slate-700 text-xl text-center w-full">
-              Loading...
-            </p>
-          )}
+
           {!loading &&
             listings &&
             listings.map((listing) => (

@@ -4,6 +4,8 @@ import { ID, Permission, Role } from "appwrite";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import Lottie from "lottie-react";
+import animationData from "../assets/CreatingLoading.json";
 
 export default function CreateListing() {
   const navigate = useNavigate();
@@ -332,6 +334,7 @@ export default function CreateListing() {
               accept="image/*"
               multiple
             />
+
             <button
               onClick={handleImageSubmit}
               type="button"
@@ -340,6 +343,16 @@ export default function CreateListing() {
               {uploading ? "Uploading" : "upload"}
             </button>
           </div>
+          {uploading && (
+            <div className="flex justify-center items-center  max-h-6">
+              <Lottie
+                animationData={animationData}
+                loop={true}
+                className="w-36 h-36"
+              />
+            </div>
+          )}
+
           {imageUploadError && (
             <p className="text-red-500 text-sm">{imageUploadError}</p>
           )}

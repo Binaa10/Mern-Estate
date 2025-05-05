@@ -13,6 +13,7 @@ import Listing from "./pages/Listing.jsx";
 import Search from "./pages/Search.jsx";
 import Footer from "./components/Footer.jsx";
 import { Toaster } from "react-hot-toast";
+import PageNotFound from "./pages/PageNotFound.jsx";
 
 export default function App() {
   return (
@@ -35,6 +36,7 @@ export default function App() {
             element={<UpdateListing />}
           />
         </Route>
+        <Route path="*" element={<PageNotFound />} />
       </Routes>
       <Footer />
     </BrowserRouter>
