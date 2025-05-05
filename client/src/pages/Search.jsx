@@ -226,43 +226,63 @@ export default function Search() {
           </button>
         </form>
       </div>
-      <div className="flex-1">
+      <div className="flex-1 relative">
         <h1 className="text-3xl font-semibold border-b p-3 text-slate-700 mt-5">
           Listing results:
         </h1>
-        {loading && (
-          <div className="flex flex-col gap-1">
-            <div className="flex justify-center items-center flex-col  h-screen">
-              <Lottie
-                animationData={animationData}
-                loop={true}
-                className="w-64 h-64"
-                style={{
-                  filter:
-                    "invert(50%) sepia(45%) saturate(1027%) hue-rotate(200deg) brightness(93%) contrast(90%)",
-                }}
-              />
-              <p className="text-slate-700 text-xl text-center">Loading...</p>
-            </div>
-          </div>
-        )}
 
-        <div className="p-7 flex flex-wrap gap-4">
+        {/* Listings container: make it relative so loader is scoped here */}
+        <div className="p-7 flex flex-wrap gap-4 relative min-h-[300px]">
+          {/* full‑screen dim (non‑blocking) */}
+          {loading && (
+            <div className="fixed inset-0 bg-black bg-opacity-20 z-40 pointer-events-none" />
+          )}
+
+          {/* 1) Loader overlay scoped to listings box */}
+          {loading && (
+            <>
+              {/* a) Dim background just in this box */}
+
+              {/* b) Centered animation and text */}
+              <div
+                className="absolute top-1/2 left-1/2 z-60
+                     transform -translate-x-1/2 -translate-y-1/2"
+              >
+                <div className="flex flex-col items-center">
+                  <Lottie
+                    animationData={animationData}
+                    loop
+                    className="w-32 h-32 md:w-48 md:h-48"
+                    style={{
+                      filter:
+                        "brightness(0) saturate(100%) invert(9%) sepia(99%) saturate(2593%) hue-rotate(210deg) brightness(89%) contrast(95%)",
+                    }}
+                  />
+                  <p className="text-slate-800 font-semibold text-3xl md:text-2xl">
+                    Loading...
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* 2) “No listing” message */}
           {!loading && listings.length === 0 && (
             <p className="text-xl text-slate-700">No listing found!</p>
           )}
 
+          {/* 3) Actual listings */}
           {!loading &&
-            listings &&
             listings.map((listing) => (
               <ListingItem key={listing._id} listing={listing} />
             ))}
-          {showMore && (
+
+          {/* 4) Show more button */}
+          {!loading && showMore && (
             <button
               onClick={onShowMoreClick}
               className="text-green-700 hover:underline p-7 text-center w-full"
             >
-              {" "}
               Show more
             </button>
           )}
