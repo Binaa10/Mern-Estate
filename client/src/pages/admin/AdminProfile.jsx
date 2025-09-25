@@ -1,5 +1,10 @@
 import React, { useState } from "react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  updateUserStart,
+  updateUserSuccess,
+  updateUserFailure,
+} from "../../redux/user/userSlice";
 import {
   Card,
   CardHeader,
@@ -13,7 +18,8 @@ import { Label } from "../../components/ui/label";
 import { Button } from "../../components/ui/button";
 
 export default function AdminProfile() {
-  const { currentUser } = useSelector((state) => state.user);
+  const dispatch = useDispatch();
+  const { currentUser, loading } = useSelector((state) => state.user);
   const [form, setForm] = useState({
     name: currentUser?.username || "",
     email: currentUser?.email || "",
@@ -29,11 +35,41 @@ export default function AdminProfile() {
     setForm((f) => ({ ...f, [name]: value }));
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    // Placeholder: would call backend
-    setMessage("Profile updated (mock)");
-    setEditing(false);
+    if (!currentUser?._id) return;
+    try {
+      dispatch(updateUserStart());
+      const payload = {
+        username: form.name,
+        email: form.email,
+        avatar: form.avatar,
+      };
+      if (form.newPassword) {
+        if (!form.password) {
+          setMessage("Enter current password to set a new one");
+          return;
+        }
+        payload.password = form.newPassword; // backend hashes
+      }
+      const res = await fetch(`/api/user/update/${currentUser._id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || "Update failed");
+      }
+      const data = await res.json();
+      dispatch(updateUserSuccess(data));
+      setMessage("Profile updated successfully");
+      setEditing(false);
+      setForm((f) => ({ ...f, password: "", newPassword: "" }));
+    } catch (err) {
+      dispatch(updateUserFailure(err.message));
+      setMessage(err.message);
+    }
   };
 
   const handleCancel = () => {
@@ -127,8 +163,8 @@ export default function AdminProfile() {
               )}
               {editing && (
                 <>
-                  <Button type="submit" variant="success">
-                    Save
+                  <Button type="submit" variant="success" disabled={loading}>
+                    {loading ? "Saving..." : "Save"}
                   </Button>
                   <Button
                     type="button"
