@@ -22,6 +22,7 @@
   "homepage": "https://github.com/Binaa10/Mern-Estate#readme",
   "dependencies": {
     "bcryptjs": "^3.0.2",
+    "clsx": "^2.1.1",
     "cookie-parser": "^1.4.7",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",

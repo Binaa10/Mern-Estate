@@ -14,6 +14,13 @@ import Search from "./pages/Search.jsx";
 import Footer from "./components/Footer.jsx";
 import { Toaster } from "react-hot-toast";
 import PageNotFound from "./pages/PageNotFound.jsx";
+import AdminRoute from "./components/AdminRoute.jsx";
+import AdminDashboard from "./pages/admin/Dashboard.jsx";
+import Analytics from "./pages/admin/Analytics.jsx";
+import UserManagement from "./pages/admin/UserManagement.jsx";
+import Properties from "./pages/admin/Properties.jsx";
+import AdminProfile from "./pages/admin/AdminProfile.jsx";
+import AdminLayout from "./pages/admin/AdminLayout.jsx";
 
 export default function App() {
   return (
@@ -35,6 +42,15 @@ export default function App() {
             path="/update-listing/:listingId"
             element={<UpdateListing />}
           />
+        </Route>
+        <Route path="/admin" element={<AdminRoute />}>
+          <Route element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="analytics" element={<Analytics />} />
+            <Route path="users" element={<UserManagement />} />
+            <Route path="properties" element={<Properties />} />
+            <Route path="profile" element={<AdminProfile />} />
+          </Route>
         </Route>
         <Route path="*" element={<PageNotFound />} />
       </Routes>
