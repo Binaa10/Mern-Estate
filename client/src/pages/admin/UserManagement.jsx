@@ -31,6 +31,10 @@ export default function UserManagement() {
     title: "",
     description: "",
   });
+  // Enhanced profile dialog data
+  const [userListings, setUserListings] = useState([]);
+  const [listingsLoading, setListingsLoading] = useState(false);
+  const [listingStats, setListingStats] = useState(null);
 
   const fetchUsers = async () => {
     try {
@@ -61,6 +65,43 @@ export default function UserManagement() {
     fetchUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, limit, statusFilter]);
+
+  // Fetch selected user's listings when dialog opens
+  useEffect(() => {
+    const fetchUserListings = async () => {
+      if (!selectedUser) return;
+      try {
+        setListingsLoading(true);
+        setUserListings([]);
+        setListingStats(null);
+        const params = new URLSearchParams({
+          userId: selectedUser._id,
+          limit: "100",
+          page: "1",
+          sort: "createdAt",
+          order: "desc",
+        });
+        const res = await fetch(`/api/admin/listings?${params.toString()}`);
+        if (!res.ok) throw new Error("Failed to fetch user listings");
+        const data = await res.json();
+        const items = data.items || [];
+        setUserListings(items);
+        // Compute stats
+        const total = data.total ?? items.length;
+        const active = items.filter((l) => l.isActive).length;
+        const inactive = total - active;
+        const offers = items.filter((l) => l.offer).length;
+        const sale = items.filter((l) => l.type === "sale").length;
+        const rent = items.filter((l) => l.type === "rent").length;
+        setListingStats({ total, active, inactive, offers, sale, rent });
+      } catch (e) {
+        setListingStats({ error: e.message });
+      } finally {
+        setListingsLoading(false);
+      }
+    };
+    fetchUserListings();
+  }, [selectedUser]);
 
   const onSearchSubmit = (e) => {
     e.preventDefault();
@@ -316,29 +357,234 @@ export default function UserManagement() {
         onOpenChange={(o) => !o && setSelectedUser(null)}
         title="User Profile"
         footer={
-          <Button variant="outline" onClick={() => setSelectedUser(null)}>
-            Close
-          </Button>
+          <div className="w-full flex justify-between items-center">
+            <div className="text-xs text-slate-400">
+              ID: {selectedUser?._id?.slice(0, 8)}… (click to copy)
+            </div>
+            <Button variant="outline" onClick={() => setSelectedUser(null)}>
+              Close
+            </Button>
+          </div>
         }
       >
         {selectedUser && (
-          <div className="space-y-2 text-sm">
-            <p>
-              <span className="font-medium">Username:</span>{" "}
-              {selectedUser.username}
-            </p>
-            <p>
-              <span className="font-medium">Email:</span> {selectedUser.email}
-            </p>
-            <p>
-              <span className="font-medium">Admin:</span>{" "}
-              {selectedUser.isAdmin ? "Yes" : "No"}
-            </p>
-            <p>
-              <span className="font-medium">Status:</span> {selectedUser.status}
-            </p>
-            <p className="text-xs text-slate-500">
-              Created: {new Date(selectedUser.createdAt).toLocaleString()}
+          <div className="space-y-6 text-sm">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="flex items-center gap-4">
+                <div className="h-20 w-20 rounded-full overflow-hidden ring-2 ring-slate-200 bg-slate-100 flex-shrink-0">
+                  <img
+                    src={selectedUser.avatar}
+                    alt={selectedUser.username}
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src =
+                        "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
+                    }}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-lg font-semibold tracking-tight">
+                      {selectedUser.username}
+                    </h2>
+                    <Badge
+                      variant={
+                        selectedUser.status === "approved"
+                          ? "success"
+                          : selectedUser.status === "pending"
+                          ? "warning"
+                          : "outline"
+                      }
+                    >
+                      {selectedUser.status}
+                    </Badge>
+                    {selectedUser.isAdmin && (
+                      <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200">
+                        Admin
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="text-xs text-slate-500 flex flex-wrap gap-4">
+                    <span>
+                      Created:{" "}
+                      {new Date(selectedUser.createdAt).toLocaleString()}
+                    </span>
+                    {selectedUser.updatedAt && (
+                      <span>
+                        Updated:{" "}
+                        {new Date(selectedUser.updatedAt).toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Contact */}
+            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-wide text-slate-500">
+                  Email
+                </p>
+                <div className="flex items-center gap-2">
+                  <p className="font-mono text-xs break-all">
+                    {selectedUser.email}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigator.clipboard.writeText(selectedUser.email)
+                    }
+                    className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 hover:bg-slate-300 text-slate-700"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-wide text-slate-500">
+                  User ID
+                </p>
+                <div className="flex items-center gap-2">
+                  <p className="font-mono text-[10px] break-all">
+                    {selectedUser._id}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigator.clipboard.writeText(selectedUser._id)
+                    }
+                    className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 hover:bg-slate-300 text-slate-700"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Listing Stats */}
+            <div className="space-y-3">
+              <p className="text-xs uppercase tracking-wide text-slate-500">
+                Listing Summary
+              </p>
+              {listingsLoading ? (
+                <div className="text-xs text-slate-500">Loading listings…</div>
+              ) : listingStats?.error ? (
+                <div className="text-xs text-red-600">{listingStats.error}</div>
+              ) : (
+                <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-6">
+                  <div className="p-2 rounded border bg-white">
+                    <p className="text-[10px] uppercase text-slate-500">
+                      Total
+                    </p>
+                    <p className="text-sm font-semibold">
+                      {listingStats?.total ?? 0}
+                    </p>
+                  </div>
+                  <div className="p-2 rounded border bg-white">
+                    <p className="text-[10px] uppercase text-slate-500">
+                      Active
+                    </p>
+                    <p className="text-sm font-semibold">
+                      {listingStats?.active ?? 0}
+                    </p>
+                  </div>
+                  <div className="p-2 rounded border bg-white">
+                    <p className="text-[10px] uppercase text-slate-500">
+                      Inactive
+                    </p>
+                    <p className="text-sm font-semibold">
+                      {listingStats?.inactive ?? 0}
+                    </p>
+                  </div>
+                  <div className="p-2 rounded border bg-white">
+                    <p className="text-[10px] uppercase text-slate-500">
+                      Offers
+                    </p>
+                    <p className="text-sm font-semibold">
+                      {listingStats?.offers ?? 0}
+                    </p>
+                  </div>
+                  <div className="p-2 rounded border bg-white">
+                    <p className="text-[10px] uppercase text-slate-500">Sale</p>
+                    <p className="text-sm font-semibold">
+                      {listingStats?.sale ?? 0}
+                    </p>
+                  </div>
+                  <div className="p-2 rounded border bg-white">
+                    <p className="text-[10px] uppercase text-slate-500">Rent</p>
+                    <p className="text-sm font-semibold">
+                      {listingStats?.rent ?? 0}
+                    </p>
+                  </div>
+                </div>
+              )}
+              <p className="text-[10px] text-slate-400">
+                Counts limited to first 100 listings for performance.
+              </p>
+            </div>
+
+            {/* Recent Listings */}
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-wide text-slate-500">
+                Recent Listings
+              </p>
+              {listingsLoading ? (
+                <div className="text-xs text-slate-500">Loading…</div>
+              ) : userListings.length === 0 ? (
+                <div className="text-xs text-slate-500">
+                  No listings created by this user.
+                </div>
+              ) : (
+                <div className="border rounded overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead className="bg-slate-50 text-slate-600">
+                      <tr>
+                        <th className="text-left font-medium px-2 py-1">
+                          Name
+                        </th>
+                        <th className="text-left font-medium px-2 py-1">
+                          Type
+                        </th>
+                        <th className="text-left font-medium px-2 py-1">
+                          Active
+                        </th>
+                        <th className="text-left font-medium px-2 py-1">
+                          Created
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {userListings.slice(0, 5).map((l) => (
+                        <tr key={l._id} className="border-t">
+                          <td className="px-2 py-1 font-medium truncate max-w-[140px]">
+                            {l.name}
+                          </td>
+                          <td className="px-2 py-1 capitalize">{l.type}</td>
+                          <td className="px-2 py-1">
+                            <Badge variant={l.isActive ? "success" : "outline"}>
+                              {l.isActive ? "Yes" : "No"}
+                            </Badge>
+                          </td>
+                          <td className="px-2 py-1">
+                            {new Date(l.createdAt).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {userListings.length > 5 && (
+                    <div className="text-[10px] px-2 py-1 text-slate-500 bg-slate-50 border-t">
+                      + {userListings.length - 5} more (showing 5)
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <p className="text-[10px] text-slate-400">
+              Data intended for administrative oversight. Additional actions can
+              be added here later.
             </p>
           </div>
         )}

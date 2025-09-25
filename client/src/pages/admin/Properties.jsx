@@ -280,66 +280,167 @@ export default function Properties() {
         onOpenChange={(o) => !o && setSelected(null)}
         title="Listing Details"
         footer={
-          <Button variant="outline" onClick={() => setSelected(null)}>
-            Close
-          </Button>
+          <div className="w-full flex justify-between items-center">
+            <div className="text-xs text-slate-400">
+              ID: {selected?._id?.slice(0, 8)}… (full copied when clicked)
+            </div>
+            <Button variant="outline" onClick={() => setSelected(null)}>
+              Close
+            </Button>
+          </div>
         }
       >
         {selected && (
-          <div className="space-y-2 text-sm">
-            <p>
-              <span className="font-medium">Name:</span> {selected.name}
-            </p>
-            <p>
-              <span className="font-medium">User Ref:</span> {selected.userRef}
-            </p>
-            <p>
-              <span className="font-medium">Regular Price:</span> $
-              {selected.regularPrice?.toLocaleString()}
-            </p>
-            <p>
-              <span className="font-medium">Discount Price:</span>{" "}
-              {selected.discountPrice
-                ? `$${selected.discountPrice.toLocaleString()}`
-                : "—"}
-            </p>
-            <p>
-              <span className="font-medium">Type:</span> {selected.type}
-            </p>
-            <p>
-              <span className="font-medium">Offer:</span>{" "}
-              {selected.offer ? "Yes" : "No"}
-            </p>
-            <p>
-              <span className="font-medium">Bedrooms:</span> {selected.bedrooms}{" "}
-              | <span className="font-medium">Bathrooms:</span>{" "}
-              {selected.bathrooms}
-            </p>
-            <p>
-              <span className="font-medium">Furnished:</span>{" "}
-              {selected.furnished ? "Yes" : "No"} |{" "}
-              <span className="font-medium">Parking:</span>{" "}
-              {selected.parking ? "Yes" : "No"}
-            </p>
-            <div>
-              <span className="font-medium">Images:</span>
-              <div className="flex flex-wrap gap-2 mt-1">
-                {selected.imageUrls?.slice(0, 4).map((url, i) => (
-                  <img
-                    key={i}
-                    src={url}
-                    alt="img"
-                    className="h-12 w-12 object-cover rounded"
-                  />
-                ))}
-                {selected.imageUrls?.length > 4 && (
-                  <span className="text-xs text-slate-500">
-                    +{selected.imageUrls.length - 4} more
+          <div className="space-y-6 text-sm">
+            {/* Header */}
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap items-center gap-3">
+                <h2 className="text-lg font-semibold tracking-tight">
+                  {selected.name}
+                </h2>
+                <Badge variant={selected.isActive ? "success" : "outline"}>
+                  {selected.isActive ? "Active" : "Inactive"}
+                </Badge>
+                {selected.offer && (
+                  <Badge className="bg-amber-100 text-amber-700 border-amber-200">
+                    Offer
+                  </Badge>
+                )}
+                <Badge className="bg-slate-100 text-slate-700 border-slate-200">
+                  {selected.type}
+                </Badge>
+              </div>
+              <div className="text-xs text-slate-500 flex gap-4 flex-wrap">
+                <span>
+                  Created: {new Date(selected.createdAt).toLocaleString()}
+                </span>
+                {selected.updatedAt && (
+                  <span>
+                    Updated: {new Date(selected.updatedAt).toLocaleString()}
                   </span>
                 )}
               </div>
             </div>
-            <p className="text-xs text-slate-500">
+
+            {/* Pricing */}
+            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-wide text-slate-500">
+                  Regular Price
+                </p>
+                <p className="font-medium">
+                  ${selected.regularPrice?.toLocaleString()}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-wide text-slate-500">
+                  Discount Price
+                </p>
+                <p className="font-medium">
+                  {selected.discountPrice
+                    ? `$${selected.discountPrice.toLocaleString()}`
+                    : "—"}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-wide text-slate-500">
+                  Offer
+                </p>
+                <p className="font-medium">{selected.offer ? "Yes" : "No"}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-wide text-slate-500">
+                  Bedrooms
+                </p>
+                <p className="font-medium">{selected.bedrooms}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-wide text-slate-500">
+                  Bathrooms
+                </p>
+                <p className="font-medium">{selected.bathrooms}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-wide text-slate-500">
+                  Owner User Ref
+                </p>
+                <div className="flex items-center gap-2">
+                  <p className="font-mono text-xs break-all">
+                    {selected.userRef}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(selected.userRef);
+                    }}
+                    className="text-xs text-indigo-600 hover:underline"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-wide text-slate-500">
+                  Furnished
+                </p>
+                <p className="font-medium">
+                  {selected.furnished ? "Yes" : "No"}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-wide text-slate-500">
+                  Parking
+                </p>
+                <p className="font-medium">{selected.parking ? "Yes" : "No"}</p>
+              </div>
+            </div>
+
+            {/* Description */}
+            {selected.description && (
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-wide text-slate-500">
+                  Description
+                </p>
+                <p className="leading-relaxed text-slate-700 whitespace-pre-line">
+                  {selected.description}
+                </p>
+              </div>
+            )}
+
+            {/* Images */}
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-wide text-slate-500">
+                Images ({selected.imageUrls?.length || 0})
+              </p>
+              {(!selected.imageUrls || selected.imageUrls.length === 0) && (
+                <p className="text-xs text-slate-500">No images uploaded.</p>
+              )}
+              {selected.imageUrls?.length > 0 && (
+                <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
+                  {selected.imageUrls.map((url, i) => (
+                    <div
+                      key={i}
+                      className="relative group border rounded overflow-hidden bg-slate-50"
+                    >
+                      <img
+                        src={url}
+                        alt={`img-${i}`}
+                        className="h-24 w-full object-cover group-hover:opacity-90 transition"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => navigator.clipboard.writeText(url)}
+                        className="absolute bottom-1 right-1 text-[10px] px-1.5 py-0.5 rounded bg-black/50 text-white opacity-0 group-hover:opacity-100 transition"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <p className="text-xs text-slate-400">
               Additional moderation actions can be added later.
             </p>
           </div>
