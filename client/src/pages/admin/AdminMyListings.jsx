@@ -43,16 +43,87 @@ export default function AdminMyListings() {
 
   const loadListings = useCallback(async () => {
     if (!currentUser?._id) return;
+    const parseJson = async (response) => {
+      const text = await response.text();
+      if (!response.ok) {
+        let message;
+        try {
+          message = text ? JSON.parse(text).message : undefined;
+        } catch {
+          message = undefined;
+        }
+        throw new Error(message || "Failed to fetch your listings");
+      }
+      if (!text) return [];
+      try {
+        const parsed = JSON.parse(text);
+        if (!Array.isArray(parsed)) {
+          throw new Error("Unexpected listings payload");
+        }
+        return parsed;
+      } catch (error) {
+        throw new Error(
+          error instanceof Error ? error.message : "Invalid listings data"
+        );
+      }
+    };
+
+    const fetchListingsFallback = async () => {
+      // attempt to fetch via admin listings endpoint as backup
+      const params = new URLSearchParams({
+        userId: currentUser._id,
+        limit: "100",
+        page: "1",
+        sort: "createdAt",
+        order: "desc",
+      });
+      const response = await fetch(`/api/admin/listings?${params.toString()}`, {
+        credentials: "include",
+        headers: { Accept: "application/json" },
+      });
+      const text = await response.text();
+      if (!response.ok) {
+        let message;
+        try {
+          message = text ? JSON.parse(text).message : undefined;
+        } catch {
+          message = undefined;
+        }
+        throw new Error(message || "Failed to fetch listings");
+      }
+      if (!text) return [];
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch (error) {
+        throw new Error(
+          error instanceof Error ? error.message : "Invalid listings data"
+        );
+      }
+      const items = Array.isArray(parsed?.items) ? parsed.items : [];
+      return items;
+    };
+
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(`/api/user/listings/${currentUser._id}`);
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.message || "Failed to fetch your listings");
+      const response = await fetch(`/api/user/listings/${currentUser._id}`, {
+        credentials: "include",
+        headers: { Accept: "application/json" },
+      });
+      let listingsData;
+      try {
+        listingsData = await parseJson(response);
+      } catch (primaryError) {
+        if (import.meta.env.DEV) {
+          console.warn(
+            "Primary listings fetch failed, using fallback",
+            primaryError
+          );
+        }
+        listingsData = await fetchListingsFallback();
       }
-      const data = await res.json();
-      setListings(Array.isArray(data) ? data : []);
+      setListings(listingsData);
     } catch (err) {
       setError(err.message);
       setMessage(null);

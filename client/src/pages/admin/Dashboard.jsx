@@ -64,19 +64,131 @@ export default function AdminDashboard() {
   const [selectedProperty, setSelectedProperty] = useState(null);
 
   useEffect(() => {
+    const parseJsonBody = async (response, context) => {
+      const raw = await response.text();
+      if (!response.ok) {
+        let message;
+        try {
+          message = raw ? JSON.parse(raw).message : undefined;
+        } catch {
+          message = undefined;
+        }
+        throw new Error(
+          message ||
+            `Failed to fetch ${context}${
+              response.status ? ` (${response.status})` : ""
+            }`
+        );
+      }
+      if (!raw) return {};
+      try {
+        return JSON.parse(raw);
+      } catch {
+        throw new Error(`Invalid JSON received for ${context}`);
+      }
+    };
+
+    const deriveMetrics = async () => {
+      const since = new Date();
+      since.setHours(0, 0, 0, 0);
+
+      const [usersRes, listingsRes] = await Promise.all([
+        fetch("/api/admin/users?page=1&limit=1", {
+          credentials: "include",
+          headers: { Accept: "application/json" },
+        }),
+        fetch(
+          "/api/admin/listings?limit=100&page=1&sort=createdAt&order=desc",
+          {
+            credentials: "include",
+            headers: { Accept: "application/json" },
+          }
+        ),
+      ]);
+
+      const [usersData, listingsData] = await Promise.all([
+        parseJsonBody(usersRes, "user metrics"),
+        parseJsonBody(listingsRes, "listing metrics"),
+      ]);
+
+      const listingItems = Array.isArray(listingsData.items)
+        ? listingsData.items
+        : [];
+      const listingsToday = listingItems.filter((item) => {
+        if (!item?.createdAt) return false;
+        const created = new Date(item.createdAt);
+        return !Number.isNaN(created.valueOf()) && created >= since;
+      }).length;
+
+      const totalUsers =
+        typeof usersData.total === "number"
+          ? usersData.total
+          : Array.isArray(usersData.items)
+          ? usersData.items.length
+          : 0;
+      const totalListings =
+        typeof listingsData.total === "number"
+          ? listingsData.total
+          : listingItems.length;
+
+      return {
+        users: totalUsers,
+        listings: totalListings,
+        listingsToday,
+      };
+    };
+
     const fetchMetrics = async () => {
       try {
         setLoading(true);
         setError(null);
-        const res = await fetch("/api/admin/metrics");
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.message || "Failed to fetch metrics");
+        const response = await fetch("/api/admin/metrics", {
+          credentials: "include",
+          headers: { Accept: "application/json" },
+        });
+        const raw = await response.text();
+        let parsed;
+        if (!response.ok) {
+          try {
+            parsed = raw ? JSON.parse(raw) : null;
+          } catch {
+            parsed = null;
+          }
+          throw new Error(
+            parsed?.message ||
+              `Failed to fetch metrics${
+                response.status ? ` (${response.status})` : ""
+              }`
+          );
         }
-        const data = await res.json();
-        setMetrics(data);
+        if (raw) {
+          try {
+            parsed = JSON.parse(raw);
+          } catch (parseErr) {
+            if (import.meta.env.DEV) {
+              console.warn(
+                "Invalid metrics payload, deriving from listings/users.",
+                parseErr
+              );
+            }
+            parsed = await deriveMetrics();
+          }
+        } else {
+          parsed = await deriveMetrics();
+        }
+        setMetrics({
+          users: parsed?.users ?? 0,
+          listings: parsed?.listings ?? 0,
+          listingsToday: parsed?.listingsToday ?? 0,
+        });
       } catch (err) {
-        setError(err.message);
+        try {
+          const fallback = await deriveMetrics();
+          setMetrics(fallback);
+          setError(null);
+        } catch (fallbackError) {
+          setError(err.message || fallbackError.message);
+        }
       } finally {
         setLoading(false);
       }
