@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Table, THead, TBody, TR, TH, TD } from "../../components/ui/table";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
@@ -11,7 +11,8 @@ import {
 } from "../../components/ui/card";
 import { Dialog } from "../../components/ui/dialog";
 
-// We will fetch real users from /api/admin/users
+import { Input } from "../../components/ui/input";
+import { Select } from "../../components/ui/select";
 
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
@@ -21,6 +22,9 @@ export default function UserManagement() {
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [adminFilter, setAdminFilter] = useState("all");
+  const [activationFilter, setActivationFilter] = useState("all");
+  const [approvalFilter, setApprovalFilter] = useState("all");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
@@ -35,6 +39,50 @@ export default function UserManagement() {
   const [userListings, setUserListings] = useState([]);
   const [listingsLoading, setListingsLoading] = useState(false);
   const [listingStats, setListingStats] = useState(null);
+  const [summary, setSummary] = useState(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryError, setSummaryError] = useState(null);
+
+  const fetchSummary = useCallback(async () => {
+    try {
+      setSummaryLoading(true);
+      setSummaryError(null);
+      const endpoints = [
+        "/api/admin/users?page=1&limit=1",
+        "/api/admin/users?status=approved&page=1&limit=1",
+        "/api/admin/users?status=pending&page=1&limit=1",
+        "/api/admin/users?status=deactivated&page=1&limit=1",
+      ];
+      const responses = await Promise.all(endpoints.map((url) => fetch(url)));
+      const datasets = await Promise.all(
+        responses.map(async (res) => {
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.message || "Failed to load summary");
+          }
+          return res.json();
+        })
+      );
+      const [allData, approvedData, pendingData, deactivatedData] = datasets;
+      const getTotal = (data) =>
+        typeof data?.total === "number"
+          ? data.total
+          : Array.isArray(data?.items)
+          ? data.items.length
+          : 0;
+      setSummary({
+        total: getTotal(allData),
+        approved: getTotal(approvedData),
+        pending: getTotal(pendingData),
+        deactivated: getTotal(deactivatedData),
+      });
+    } catch (err) {
+      setSummary(null);
+      setSummaryError(err.message);
+    } finally {
+      setSummaryLoading(false);
+    }
+  }, []);
 
   const fetchUsers = async () => {
     try {
@@ -46,6 +94,10 @@ export default function UserManagement() {
       });
       if (search.trim()) params.set("search", search.trim());
       if (statusFilter !== "all") params.set("status", statusFilter);
+      if (adminFilter !== "all") params.set("admin", adminFilter);
+      if (activationFilter !== "all")
+        params.set("activation", activationFilter);
+      if (approvalFilter !== "all") params.set("approval", approvalFilter);
       const res = await fetch(`/api/admin/users?${params.toString()}`);
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -64,7 +116,18 @@ export default function UserManagement() {
   useEffect(() => {
     fetchUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, limit, statusFilter]);
+  }, [
+    page,
+    limit,
+    statusFilter,
+    adminFilter,
+    activationFilter,
+    approvalFilter,
+  ]);
+
+  useEffect(() => {
+    fetchSummary();
+  }, [fetchSummary]);
 
   // Fetch selected user's listings when dialog opens
   useEffect(() => {
@@ -171,6 +234,69 @@ export default function UserManagement() {
           Search and inspect user accounts
         </p>
       </div>
+      <div className="space-y-2">
+        {summaryError && (
+          <div className="text-sm text-red-700 bg-red-100 border border-red-200 rounded px-3 py-2">
+            {summaryError}
+          </div>
+        )}
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {summaryLoading
+            ? Array.from({ length: 4 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="rounded-xl border bg-white p-4 shadow-sm animate-pulse"
+                >
+                  <div className="h-4 w-28 bg-slate-200 rounded" />
+                  <div className="mt-3 h-8 w-12 bg-slate-200 rounded" />
+                  <div className="mt-4 h-6 w-24 bg-slate-200 rounded-full" />
+                </div>
+              ))
+            : [
+                {
+                  label: "Total Users",
+                  value: summary?.total ?? 0,
+                  helper: "Count of all users",
+                  helperClass: "bg-indigo-100 text-indigo-700",
+                },
+                {
+                  label: "Approved",
+                  value: summary?.approved ?? 0,
+                  helper: "Active accounts",
+                  helperClass: "bg-emerald-100 text-emerald-700",
+                },
+                {
+                  label: "Pending",
+                  value: summary?.pending ?? 0,
+                  helper: "Awaiting review",
+                  helperClass: "bg-amber-100 text-amber-700",
+                },
+                {
+                  label: "Deactivated",
+                  value: summary?.deactivated ?? 0,
+                  helper: "Suspended users",
+                  helperClass: "bg-rose-100 text-rose-700",
+                },
+              ].map((card) => (
+                <div
+                  key={card.label}
+                  className="rounded-xl border bg-white p-5 shadow-sm flex flex-col gap-3"
+                >
+                  <span className="text-sm font-medium text-slate-500">
+                    {card.label}
+                  </span>
+                  <span className="text-3xl font-semibold text-slate-900">
+                    {card.value}
+                  </span>
+                  <span
+                    className={`inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-medium ${card.helperClass}`}
+                  >
+                    {card.helper}
+                  </span>
+                </div>
+              ))}
+        </div>
+      </div>
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-lg">Users</CardTitle>
@@ -179,6 +305,9 @@ export default function UserManagement() {
         <CardContent>
           <div className="flex flex-col gap-3 mb-4">
             <div className="flex flex-wrap gap-2">
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300 mr-2 self-center">
+                Status:
+              </span>
               {["all", "approved", "pending", "deactivated"].map((s) => (
                 <Button
                   key={s}
@@ -198,12 +327,12 @@ export default function UserManagement() {
               onSubmit={onSearchSubmit}
               className="flex flex-col sm:flex-row gap-2"
             >
-              <input
+              <Input
                 type="text"
                 placeholder="Search username or email"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="border rounded-md px-3 py-2 w-full text-sm"
+                className="flex-1"
               />
               <Button type="submit" variant="outline">
                 Search
@@ -213,6 +342,10 @@ export default function UserManagement() {
                 variant="ghost"
                 onClick={() => {
                   setSearch("");
+                  setStatusFilter("all");
+                  setAdminFilter("all");
+                  setActivationFilter("all");
+                  setApprovalFilter("all");
                   setPage(1);
                   fetchUsers();
                 }}
@@ -220,6 +353,59 @@ export default function UserManagement() {
                 Reset
               </Button>
             </form>
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300 mr-2">
+                Roles:
+              </span>
+              <Select
+                value={adminFilter}
+                onChange={(e) => {
+                  setAdminFilter(e.target.value);
+                  setPage(1);
+                }}
+                className="w-32"
+              >
+                <option value="all">All</option>
+                <option value="admin">Admin</option>
+                <option value="user">Staff</option>
+              </Select>
+            </div>
+            <div className="flex flex-wrap gap-4 items-center">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Activation:
+                </span>
+                <Select
+                  value={activationFilter}
+                  onChange={(e) => {
+                    setActivationFilter(e.target.value);
+                    setPage(1);
+                  }}
+                  className="w-28"
+                >
+                  <option value="all">All</option>
+                  <option value="activated">Activated</option>
+                  <option value="deactivated">Deactivated</option>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Approval:
+                </span>
+                <Select
+                  value={approvalFilter}
+                  onChange={(e) => {
+                    setApprovalFilter(e.target.value);
+                    setPage(1);
+                  }}
+                  className="w-24"
+                >
+                  <option value="all">All</option>
+                  <option value="approved">Approved</option>
+                  <option value="pending">Pending</option>
+                </Select>
+              </div>
+            </div>
           </div>
           {error && (
             <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2">
@@ -238,7 +424,7 @@ export default function UserManagement() {
                     <TH>Username</TH>
                     <TH>Email</TH>
                     <TH>Status</TH>
-                    <TH>Admin</TH>
+                    <TH>Roles</TH>
                     <TH className="text-right">Actions</TH>
                   </TR>
                 </THead>
@@ -288,14 +474,16 @@ export default function UserManagement() {
                             <>
                               <Button
                                 size="sm"
-                                variant="outline"
+                                variant="default"
+                                className="!bg-green-600 hover:!bg-green-700 text-white"
                                 onClick={() => openConfirm(u, "approved")}
                               >
                                 Approve
                               </Button>
                               <Button
                                 size="sm"
-                                variant="outline"
+                                variant="default"
+                                className="!bg-red-600 hover:!bg-red-700 text-white"
                                 onClick={() => openConfirm(u, "deactivated")}
                               >
                                 Reject
@@ -305,7 +493,8 @@ export default function UserManagement() {
                           {u.status === "approved" && (
                             <Button
                               size="sm"
-                              variant="outline"
+                              variant="default"
+                              className="!bg-red-600 hover:!bg-red-700 text-white"
                               onClick={() => openConfirm(u, "deactivated")}
                             >
                               Deactivate
@@ -314,7 +503,8 @@ export default function UserManagement() {
                           {u.status === "deactivated" && (
                             <Button
                               size="sm"
-                              variant="outline"
+                              variant="default"
+                              className="!bg-green-500 hover:!bg-green-600 text-white"
                               onClick={() => openConfirm(u, "approved")}
                             >
                               Re-Approve

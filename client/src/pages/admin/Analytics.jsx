@@ -23,6 +23,12 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import {
+  HiOutlineUsers,
+  HiOutlineOfficeBuilding,
+  HiOutlineUserAdd,
+  HiOutlineOfficeBuilding as HiOutlineBuildingAdd,
+} from "react-icons/hi";
 
 export default function Analytics() {
   // Mock data for charts
@@ -59,10 +65,30 @@ export default function Analytics() {
   ];
 
   const metrics = [
-    { label: "Total Users", value: 1234, note: "All time" },
-    { label: "Total Properties", value: 245, note: "All time" },
-    { label: "New Users (7d)", value: 37, note: "Last 7 days" },
-    { label: "New Properties (7d)", value: 14, note: "Last 7 days" },
+    {
+      label: "Total Users",
+      value: 1234,
+      note: "All time",
+      icon: HiOutlineUsers,
+    },
+    {
+      label: "Total Properties",
+      value: 245,
+      note: "All time",
+      icon: HiOutlineOfficeBuilding,
+    },
+    {
+      label: "New Users (7d)",
+      value: 37,
+      note: "Last 7 days",
+      icon: HiOutlineUserAdd,
+    },
+    {
+      label: "New Properties (7d)",
+      value: 14,
+      note: "Last 7 days",
+      icon: HiOutlineBuildingAdd,
+    },
   ];
 
   return (
@@ -102,7 +128,10 @@ export default function Analytics() {
         {metrics.map((m) => (
           <Card key={m.label}>
             <CardHeader className="pb-2">
-              <CardDescription>{m.label}</CardDescription>
+              <CardDescription className="flex items-center gap-2">
+                <m.icon className="h-4 w-4" />
+                {m.label}
+              </CardDescription>
               <CardTitle className="text-3xl mt-2">{m.value}</CardTitle>
             </CardHeader>
             <CardContent className="pt-0 text-xs text-slate-500">

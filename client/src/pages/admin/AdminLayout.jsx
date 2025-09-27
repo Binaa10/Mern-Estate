@@ -1,18 +1,45 @@
 import React, { useState, useEffect } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { useSelector } from "react-redux";
+import {
+  HiOutlineHome,
+  HiOutlineChartBar,
+  HiOutlineUsers,
+  HiOutlineOfficeBuilding,
+  HiOutlineUser,
+  HiOutlineMoon,
+  HiOutlineSun,
+  HiOutlinePlusCircle,
+  HiOutlineClipboardList,
+} from "react-icons/hi";
 
 const links = [
-  { to: "/admin", label: "Dashboard", end: true },
-  { to: "/admin/analytics", label: "Analytics" },
-  { to: "/admin/users", label: "Users" },
-  { to: "/admin/properties", label: "Properties" },
-  { to: "/admin/profile", label: "Profile" },
+  { to: "/admin", label: "Dashboard", end: true, icon: HiOutlineHome },
+  { to: "/admin/analytics", label: "Analytics", icon: HiOutlineChartBar },
+  { to: "/admin/users", label: "Users", icon: HiOutlineUsers },
+  {
+    to: "/admin/properties",
+    label: "Properties",
+    icon: HiOutlineOfficeBuilding,
+  },
+  {
+    to: "/admin/create-listing",
+    label: "Create Listing",
+    icon: HiOutlinePlusCircle,
+  },
+  {
+    to: "/admin/my-listings",
+    label: "My Listings",
+    icon: HiOutlineClipboardList,
+  },
+  { to: "/admin/profile", label: "Profile", icon: HiOutlineUser },
 ];
 
 export default function AdminLayout() {
   const { currentUser } = useSelector((s) => s.user);
+  const location = useLocation();
+  const isDashboard = location.pathname === "/admin";
   const [theme, setTheme] = useState(() =>
     typeof window !== "undefined" && localStorage.getItem("admin-theme")
       ? localStorage.getItem("admin-theme")
@@ -48,29 +75,70 @@ export default function AdminLayout() {
               to={l.to}
               end={l.end}
               className={({ isActive }) =>
-                "block rounded-md px-3 py-2 text-sm font-medium transition " +
+                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition " +
                 (isActive
                   ? "bg-slate-900 dark:bg-slate-200 text-white dark:text-slate-900"
                   : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800")
               }
             >
+              <l.icon className="h-5 w-5" />
               {l.label}
             </NavLink>
           ))}
         </nav>
         <div className="p-4 border-t dark:border-slate-800 flex flex-col gap-2 text-xs text-slate-400 dark:text-slate-500">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={toggleTheme}
-            className="justify-center"
-          >
-            {theme === "light" ? "Dark Mode" : "Light Mode"}
-          </Button>
+          {/* Removed theme toggle - now in header */}
           {/* Removed © year as requested */}
         </div>
       </aside>
       <div className="flex-1 flex flex-col">
+        {/* Top Header Bar */}
+        {isDashboard && (
+          <header className="bg-white dark:bg-slate-950 border-b dark:border-slate-800 px-4 lg:px-6 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                  Admin Dashboard
+                </h1>
+              </div>
+              <div className="flex items-center gap-3">
+                {currentUser && (
+                  <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                    <div className="h-8 w-8 rounded-full overflow-hidden bg-slate-200 dark:bg-slate-700">
+                      <img
+                        src={
+                          currentUser.avatar ||
+                          "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"
+                        }
+                        alt={currentUser.username}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                    <span className="hidden sm:block">
+                      {currentUser.username}
+                    </span>
+                  </div>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={toggleTheme}
+                  className="gap-2"
+                >
+                  {theme === "light" ? (
+                    <HiOutlineMoon className="h-4 w-4" />
+                  ) : (
+                    <HiOutlineSun className="h-4 w-4" />
+                  )}
+                  <span className="hidden sm:block">
+                    {theme === "light" ? "Dark" : "Light"}
+                  </span>
+                </Button>
+              </div>
+            </div>
+          </header>
+        )}
+
         <div className="md:hidden border-b bg-white dark:bg-slate-950 dark:border-slate-800 p-2 flex gap-2 overflow-x-auto">
           {links.map((l) => (
             <NavLink
@@ -78,23 +146,16 @@ export default function AdminLayout() {
               to={l.to}
               end={l.end}
               className={({ isActive }) =>
-                "whitespace-nowrap rounded px-3 py-1 text-sm " +
+                "flex items-center gap-2 whitespace-nowrap rounded px-3 py-1 text-sm " +
                 (isActive
                   ? "bg-slate-900 dark:bg-slate-200 text-white dark:text-slate-900"
                   : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300")
               }
             >
+              <l.icon className="h-4 w-4" />
               {l.label}
             </NavLink>
           ))}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={toggleTheme}
-            className="ml-auto"
-          >
-            {theme === "light" ? "Dark" : "Light"}
-          </Button>
         </div>
         <main className="flex-1 p-4 lg:p-6">
           <Outlet />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Table, THead, TBody, TR, TH, TD } from "../../components/ui/table";
 import {
   Card,
@@ -11,7 +11,8 @@ import { Button } from "../../components/ui/button";
 import { Dialog } from "../../components/ui/dialog";
 import { Badge } from "../../components/ui/badge";
 
-// Fetch real listings from /api/admin/listings
+import { Input } from "../../components/ui/input";
+import { Select } from "../../components/ui/select";
 
 export default function Properties() {
   const [listings, setListings] = useState([]);
@@ -20,6 +21,11 @@ export default function Properties() {
   const [limit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [offerFilter, setOfferFilter] = useState("all");
+  const [furnishedFilter, setFurnishedFilter] = useState("all");
+  const [parkingFilter, setParkingFilter] = useState("all");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [confirm, setConfirm] = useState({
@@ -30,6 +36,50 @@ export default function Properties() {
     description: "",
   });
   const [actionLoading, setActionLoading] = useState(false);
+  const [summary, setSummary] = useState(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryError, setSummaryError] = useState(null);
+
+  const fetchSummary = useCallback(async () => {
+    try {
+      setSummaryLoading(true);
+      setSummaryError(null);
+      const endpoints = [
+        "/api/admin/listings?page=1&limit=1",
+        "/api/admin/listings?isActive=true&page=1&limit=1",
+        "/api/admin/listings?isActive=false&page=1&limit=1",
+        "/api/admin/listings?offer=true&page=1&limit=1",
+      ];
+      const responses = await Promise.all(endpoints.map((url) => fetch(url)));
+      const datasets = await Promise.all(
+        responses.map(async (res) => {
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.message || "Failed to load property summary");
+          }
+          return res.json();
+        })
+      );
+      const [allData, activeData, inactiveData, offerData] = datasets;
+      const getTotal = (data) =>
+        typeof data?.total === "number"
+          ? data.total
+          : Array.isArray(data?.items)
+          ? data.items.length
+          : 0;
+      setSummary({
+        total: getTotal(allData),
+        active: getTotal(activeData),
+        inactive: getTotal(inactiveData),
+        offers: getTotal(offerData),
+      });
+    } catch (err) {
+      setSummary(null);
+      setSummaryError(err.message);
+    } finally {
+      setSummaryLoading(false);
+    }
+  }, []);
 
   const fetchListings = async () => {
     try {
@@ -40,6 +90,11 @@ export default function Properties() {
         limit: limit.toString(),
       });
       if (search.trim()) params.set("search", search.trim());
+      if (typeFilter !== "all") params.set("type", typeFilter);
+      if (statusFilter !== "all") params.set("status", statusFilter);
+      if (offerFilter !== "all") params.set("offer", offerFilter);
+      if (furnishedFilter !== "all") params.set("furnished", furnishedFilter);
+      if (parkingFilter !== "all") params.set("parking", parkingFilter);
       const res = await fetch(`/api/admin/listings?${params.toString()}`);
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -58,7 +113,19 @@ export default function Properties() {
   useEffect(() => {
     fetchListings();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, limit]);
+  }, [
+    page,
+    limit,
+    typeFilter,
+    statusFilter,
+    offerFilter,
+    furnishedFilter,
+    parkingFilter,
+  ]);
+
+  useEffect(() => {
+    fetchSummary();
+  }, [fetchSummary]);
 
   const onSearchSubmit = (e) => {
     e.preventDefault();
@@ -139,38 +206,199 @@ export default function Properties() {
           Complete list of listed properties
         </p>
       </div>
+      <div className="space-y-2">
+        {summaryError && (
+          <div className="text-sm text-red-700 bg-red-100 border border-red-200 rounded px-3 py-2">
+            {summaryError}
+          </div>
+        )}
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {summaryLoading
+            ? Array.from({ length: 4 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="rounded-xl border bg-white p-4 shadow-sm animate-pulse"
+                >
+                  <div className="h-4 w-28 bg-slate-200 rounded" />
+                  <div className="mt-3 h-8 w-12 bg-slate-200 rounded" />
+                  <div className="mt-4 h-6 w-24 bg-slate-200 rounded-full" />
+                </div>
+              ))
+            : [
+                {
+                  label: "Total Listings",
+                  value: summary?.total ?? 0,
+                  helper: "All listings",
+                  helperClass: "bg-emerald-100 text-emerald-700",
+                },
+                {
+                  label: "Active",
+                  value: summary?.active ?? 0,
+                  helper: "Currently live",
+                  helperClass: "bg-green-100 text-green-700",
+                },
+                {
+                  label: "Inactive",
+                  value: summary?.inactive ?? 0,
+                  helper: "Hidden listings",
+                  helperClass: "bg-slate-200 text-slate-700",
+                },
+                {
+                  label: "On Offer",
+                  value: summary?.offers ?? 0,
+                  helper: "Discounted",
+                  helperClass: "bg-amber-100 text-amber-700",
+                },
+              ].map((card) => (
+                <div
+                  key={card.label}
+                  className="rounded-xl border bg-white p-5 shadow-sm flex flex-col gap-3"
+                >
+                  <span className="text-sm font-medium text-slate-500">
+                    {card.label}
+                  </span>
+                  <span className="text-3xl font-semibold text-slate-900">
+                    {card.value}
+                  </span>
+                  <span
+                    className={`inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-medium ${card.helperClass}`}
+                  >
+                    {card.helper}
+                  </span>
+                </div>
+              ))}
+        </div>
+      </div>
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-lg">Properties</CardTitle>
           <CardDescription>Showing real listings from database</CardDescription>
         </CardHeader>
         <CardContent>
-          <form
-            onSubmit={onSearchSubmit}
-            className="flex flex-col sm:flex-row gap-2 mb-4"
-          >
-            <input
-              type="text"
-              placeholder="Search listing name"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="border rounded-md px-3 py-2 w-full text-sm"
-            />
-            <Button type="submit" variant="outline">
-              Search
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => {
-                setSearch("");
-                setPage(1);
-                fetchListings();
-              }}
+          <div className="flex flex-col gap-3 mb-4">
+            <div className="flex flex-wrap gap-4 items-center">
+              <div className="flex flex-wrap gap-2 items-center">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300 mr-2">
+                  Status:
+                </span>
+                {["all", "active", "inactive"].map((s) => (
+                  <Button
+                    key={s}
+                    type="button"
+                    variant={statusFilter === s ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      setStatusFilter(s);
+                      setPage(1);
+                    }}
+                  >
+                    {s.charAt(0).toUpperCase() + s.slice(1)}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <form
+              onSubmit={onSearchSubmit}
+              className="flex flex-col sm:flex-row gap-2"
             >
-              Reset
-            </Button>
-          </form>
+              <Input
+                type="text"
+                placeholder="Search listing name"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="flex-1"
+              />
+              <Button type="submit" variant="outline">
+                Search
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setSearch("");
+                  setTypeFilter("all");
+                  setStatusFilter("all");
+                  setOfferFilter("all");
+                  setFurnishedFilter("all");
+                  setParkingFilter("all");
+                  setPage(1);
+                  fetchListings();
+                }}
+              >
+                Reset
+              </Button>
+            </form>
+            <div className="flex flex-wrap gap-4 items-center">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Type:
+                </span>
+                <Select
+                  value={typeFilter}
+                  onChange={(e) => {
+                    setTypeFilter(e.target.value);
+                    setPage(1);
+                  }}
+                  className="w-24"
+                >
+                  <option value="all">All</option>
+                  <option value="sale">Sale</option>
+                  <option value="rent">Rent</option>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Offer:
+                </span>
+                <Select
+                  value={offerFilter}
+                  onChange={(e) => {
+                    setOfferFilter(e.target.value);
+                    setPage(1);
+                  }}
+                  className="w-20"
+                >
+                  <option value="all">All</option>
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Furnished:
+                </span>
+                <Select
+                  value={furnishedFilter}
+                  onChange={(e) => {
+                    setFurnishedFilter(e.target.value);
+                    setPage(1);
+                  }}
+                  className="w-24"
+                >
+                  <option value="all">All</option>
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Parking:
+                </span>
+                <Select
+                  value={parkingFilter}
+                  onChange={(e) => {
+                    setParkingFilter(e.target.value);
+                    setPage(1);
+                  }}
+                  className="w-20"
+                >
+                  <option value="all">All</option>
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
+                </Select>
+              </div>
+            </div>
+          </div>
           {error && (
             <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2">
               {error}
@@ -185,11 +413,12 @@ export default function Properties() {
               <Table>
                 <THead>
                   <TR>
+                    <TH>Image</TH>
                     <TH>Title</TH>
                     <TH>Owner</TH>
                     <TH>Price</TH>
-                    <TH>Offer</TH>
-                    <TH>Active</TH>
+                    <TH>Type</TH>
+                    <TH>Status</TH>
                     <TH className="text-right">Actions</TH>
                   </TR>
                 </THead>
@@ -197,7 +426,7 @@ export default function Properties() {
                   {listings.length === 0 && (
                     <TR>
                       <TD
-                        colSpan={5}
+                        colSpan={7}
                         className="text-center text-sm py-8 text-slate-500"
                       >
                         No listings found
@@ -206,39 +435,68 @@ export default function Properties() {
                   )}
                   {listings.map((l) => (
                     <TR key={l._id}>
-                      <TD className="font-medium">{l.name}</TD>
-                      <TD className="truncate max-w-[140px]">{l.userRef}</TD>
-                      <TD>${l.regularPrice?.toLocaleString()}</TD>
                       <TD>
-                        <Badge variant={l.offer ? "success" : "outline"}>
-                          {l.offer ? "Offer" : "—"}
+                        <div className="h-12 w-16 overflow-hidden rounded-md bg-slate-100 dark:bg-slate-800 flex-shrink-0">
+                          {l.imageUrls?.[0] && (
+                            <img
+                              src={l.imageUrls[0]}
+                              alt={l.name}
+                              className="h-full w-full object-cover"
+                            />
+                          )}
+                        </div>
+                      </TD>
+                      <TD className="font-medium max-w-[200px] truncate">
+                        {l.name}
+                      </TD>
+                      <TD className="truncate max-w-[120px] text-xs">
+                        {l.userRef}
+                      </TD>
+                      <TD className="font-medium">
+                        ${l.regularPrice?.toLocaleString()}
+                      </TD>
+                      <TD>
+                        <Badge variant="outline" className="capitalize">
+                          {l.type}
                         </Badge>
                       </TD>
                       <TD>
-                        <Badge variant={l.isActive ? "success" : "outline"}>
-                          {l.isActive ? "Yes" : "No"}
-                        </Badge>
+                        <div className="flex flex-col gap-1">
+                          <Badge variant={l.isActive ? "success" : "outline"}>
+                            {l.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                          {l.offer && (
+                            <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs">
+                              Offer
+                            </Badge>
+                          )}
+                        </div>
                       </TD>
                       <TD>
                         <div className="flex justify-end gap-2">
                           <Button
                             size="sm"
-                            variant="outline"
+                            variant="default"
                             onClick={() => setSelected(l)}
                           >
                             View
                           </Button>
                           <Button
                             size="sm"
-                            variant="outline"
+                            variant="default"
+                            className={
+                              l.isActive
+                                ? "!bg-red-600 hover:!bg-red-700 text-white"
+                                : "!bg-green-600 hover:!bg-green-700 text-white"
+                            }
                             onClick={() => openConfirm(l, "toggle")}
                           >
-                            {l.isActive ? "Make Unavailable" : "Make Available"}
+                            {l.isActive ? "Deactivate" : "Activate"}
                           </Button>
                           <Button
                             size="sm"
-                            variant="outline"
-                            className="text-red-600 border-red-200 hover:bg-red-50"
+                            variant="default"
+                            className="!bg-red-600 hover:!bg-red-700 text-white"
                             onClick={() => openConfirm(l, "delete")}
                           >
                             Delete

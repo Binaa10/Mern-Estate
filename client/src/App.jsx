@@ -21,6 +21,8 @@ import UserManagement from "./pages/admin/UserManagement.jsx";
 import Properties from "./pages/admin/Properties.jsx";
 import AdminProfile from "./pages/admin/AdminProfile.jsx";
 import AdminLayout from "./pages/admin/AdminLayout.jsx";
+import AdminCreateListing from "./pages/admin/AdminCreateListing.jsx";
+import AdminMyListings from "./pages/admin/AdminMyListings.jsx";
 
 export default function App() {
   return (
@@ -49,6 +51,8 @@ export default function App() {
             <Route path="analytics" element={<Analytics />} />
             <Route path="users" element={<UserManagement />} />
             <Route path="properties" element={<Properties />} />
+            <Route path="create-listing" element={<AdminCreateListing />} />
+            <Route path="my-listings" element={<AdminMyListings />} />
             <Route path="profile" element={<AdminProfile />} />
           </Route>
         </Route>

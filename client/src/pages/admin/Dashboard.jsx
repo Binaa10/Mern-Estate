@@ -9,27 +9,39 @@ import {
 } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
+import { Table, THead, TBody, TR, TH, TD } from "../../components/ui/table";
+import { Dialog } from "../../components/ui/dialog";
+import {
+  HiOutlineChartBar,
+  HiOutlineUsers,
+  HiOutlineOfficeBuilding,
+  HiOutlineUser,
+} from "react-icons/hi";
 
 const quickLinks = [
   {
     label: "Analytics",
     to: "/admin/analytics",
     desc: "Traffic, growth trends, and KPI charts (mock data).",
+    icon: HiOutlineChartBar,
   },
   {
     label: "Users",
     to: "/admin/users",
     desc: "Manage accounts: approve, deactivate, inspect profiles.",
+    icon: HiOutlineUsers,
   },
   {
     label: "Properties",
     to: "/admin/properties",
     desc: "Review and moderate listed properties with status controls.",
+    icon: HiOutlineOfficeBuilding,
   },
   {
     label: "Profile",
     to: "/admin/profile",
     desc: "Update your admin account details and password.",
+    icon: HiOutlineUser,
   },
 ];
 
@@ -49,6 +61,7 @@ export default function AdminDashboard() {
   const [pendingError, setPendingError] = useState(null);
   const [recentListings, setRecentListings] = useState([]);
   const [recentLoading, setRecentLoading] = useState(false);
+  const [selectedProperty, setSelectedProperty] = useState(null);
 
   useEffect(() => {
     const fetchMetrics = async () => {
@@ -196,63 +209,98 @@ export default function AdminDashboard() {
       </div>
 
       <Card className="dark:bg-slate-950 dark:border-slate-800">
-        <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
-          <CardDescription>Latest 3 property listings</CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Recent Activity</CardTitle>
+            <CardDescription>Latest property listings</CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/admin/properties")}
+            className="text-xs"
+          >
+            View All →
+          </Button>
         </CardHeader>
-        <CardContent className="text-sm space-y-4">
-          {recentLoading && (
-            <p className="text-slate-500 text-xs">Loading recent listings…</p>
+        <CardContent>
+          {recentLoading ? (
+            <div className="py-8 text-center text-sm text-slate-500">
+              Loading recent listings...
+            </div>
+          ) : recentListings.length === 0 ? (
+            <div className="py-8 text-center text-sm text-slate-500">
+              No listings yet.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <THead>
+                  <TR>
+                    <TH>Image</TH>
+                    <TH>Title</TH>
+                    <TH>Type</TH>
+                    <TH>Status</TH>
+                    <TH>Created</TH>
+                    <TH className="text-right">Actions</TH>
+                  </TR>
+                </THead>
+                <TBody>
+                  {recentListings.map((l) => (
+                    <TR key={l._id}>
+                      <TD>
+                        <div className="h-12 w-16 overflow-hidden rounded-md bg-slate-100 dark:bg-slate-800 flex-shrink-0">
+                          {l.imageUrls?.[0] && (
+                            <img
+                              src={l.imageUrls[0]}
+                              alt={l.name}
+                              className="h-full w-full object-cover"
+                            />
+                          )}
+                        </div>
+                      </TD>
+                      <TD className="font-medium max-w-[200px] truncate">
+                        {l.name}
+                      </TD>
+                      <TD>
+                        <Badge variant="outline" className="capitalize">
+                          {l.type}
+                        </Badge>
+                      </TD>
+                      <TD>
+                        <div className="flex flex-col gap-1">
+                          <Badge
+                            variant={l.isActive ? "success" : "outline"}
+                            className="text-xs"
+                          >
+                            {l.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                          {l.offer && (
+                            <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs">
+                              Offer
+                            </Badge>
+                          )}
+                        </div>
+                      </TD>
+                      <TD className="text-sm text-slate-500">
+                        {new Date(l.createdAt).toLocaleDateString()}
+                      </TD>
+                      <TD className="text-right">
+                        <Button
+                          size="sm"
+                          variant="default"
+                          onClick={() => setSelectedProperty(l)}
+                          className="text-xs"
+                        >
+                          View
+                        </Button>
+                      </TD>
+                    </TR>
+                  ))}
+                </TBody>
+              </Table>
+            </div>
           )}
-          {!recentLoading && recentListings.length === 0 && (
-            <p className="text-slate-500 text-xs">No listings yet.</p>
-          )}
-          <ul className="space-y-3">
-            {recentListings.map((l) => (
-              <li
-                key={l._id}
-                className="flex items-start gap-3 p-2 rounded-md border dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition cursor-pointer"
-                onClick={() => navigate("/admin/properties")}
-              >
-                <div className="h-12 w-16 overflow-hidden rounded-md bg-slate-100 dark:bg-slate-800 flex-shrink-0">
-                  {l.imageUrls?.[0] && (
-                    <img
-                      src={l.imageUrls[0]}
-                      alt={l.name}
-                      className="h-full w-full object-cover"
-                    />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-slate-700 dark:text-slate-200 truncate">
-                    {l.name}
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
-                    {l.description?.slice(0, 120) || "No description"}
-                  </p>
-                  <div className="flex gap-2 mt-1 flex-wrap">
-                    <Badge
-                      variant={l.isActive ? "success" : "outline"}
-                      className="text-[10px]"
-                    >
-                      {l.isActive ? "Active" : "Inactive"}
-                    </Badge>
-                    {l.offer && (
-                      <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-[10px]">
-                        Offer
-                      </Badge>
-                    )}
-                    <Badge className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 text-[10px]">
-                      {l.type}
-                    </Badge>
-                  </div>
-                </div>
-                <div className="text-[10px] text-slate-500 dark:text-slate-400 whitespace-nowrap pl-2">
-                  {new Date(l.createdAt).toLocaleDateString()}
-                </div>
-              </li>
-            ))}
-          </ul>
         </CardContent>
       </Card>
 
@@ -269,7 +317,7 @@ export default function AdminDashboard() {
               </div>
               <Button
                 size="sm"
-                variant="outline"
+                variant="default"
                 onClick={() => setPendingOpen(false)}
               >
                 Close
@@ -320,29 +368,170 @@ export default function AdminDashboard() {
         </Card>
       )}
 
-      {/* Quick Links Sections */}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {quickLinks.map((q) => (
-          <Card
-            key={q.to}
-            className="cursor-pointer group hover:shadow-md transition dark:bg-slate-950 dark:border-slate-800"
-            onClick={() => navigate(q.to)}
-          >
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <span className="inline-block h-2 w-2 rounded-full bg-slate-400 group-hover:bg-indigo-500 transition" />
-                {q.label}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-              {q.desc}
-              <div className="mt-2 text-indigo-600 dark:text-indigo-400 font-medium text-[11px]">
-                Open →
+      {/* Quick Actions */}
+      <Card className="dark:bg-slate-950 dark:border-slate-800">
+        <CardHeader>
+          <CardTitle>Quick Actions</CardTitle>
+          <CardDescription>Access key admin functions</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {quickLinks.map((q) => (
+              <Button
+                key={q.to}
+                variant="outline"
+                className="h-auto p-4 justify-start gap-3 hover:bg-slate-50 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700"
+                onClick={() => navigate(q.to)}
+              >
+                <q.icon className="h-6 w-6 text-slate-600 dark:text-slate-400 flex-shrink-0" />
+                <div className="text-left min-w-0">
+                  <div className="font-medium text-sm">{q.label}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+                    {q.desc}
+                  </div>
+                </div>
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Property Details Modal */}
+      <Dialog
+        open={!!selectedProperty}
+        onOpenChange={(o) => !o && setSelectedProperty(null)}
+        title="Property Details"
+        footer={
+          <div className="w-full flex justify-between items-center">
+            <div className="text-xs text-slate-400">
+              ID: {selectedProperty?._id?.slice(0, 8)}… (full copied when
+              clicked)
+            </div>
+            <Button variant="default" onClick={() => setSelectedProperty(null)}>
+              Close
+            </Button>
+          </div>
+        }
+      >
+        {selectedProperty && (
+          <div className="space-y-6 text-sm">
+            {/* Header */}
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap items-center gap-3">
+                <h2 className="text-lg font-semibold tracking-tight">
+                  {selectedProperty.name}
+                </h2>
+                <Badge
+                  variant={selectedProperty.isActive ? "success" : "outline"}
+                >
+                  {selectedProperty.isActive ? "Active" : "Inactive"}
+                </Badge>
+                {selectedProperty.offer && (
+                  <Badge className="bg-amber-100 text-amber-700 border-amber-200">
+                    Offer
+                  </Badge>
+                )}
+                <Badge className="bg-slate-100 text-slate-700 border-slate-200">
+                  {selectedProperty.type}
+                </Badge>
               </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              <div className="text-xs text-slate-500 flex gap-4 flex-wrap">
+                <span>
+                  Created:{" "}
+                  {new Date(selectedProperty.createdAt).toLocaleString()}
+                </span>
+                {selectedProperty.updatedAt && (
+                  <span>
+                    Updated:{" "}
+                    {new Date(selectedProperty.updatedAt).toLocaleString()}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Pricing */}
+            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-wide text-slate-500">
+                  Regular Price
+                </p>
+                <p className="font-medium">
+                  ${selectedProperty.regularPrice?.toLocaleString()}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-wide text-slate-500">
+                  Discount Price
+                </p>
+                <p className="font-medium">
+                  {selectedProperty.discountPrice
+                    ? `$${selectedProperty.discountPrice.toLocaleString()}`
+                    : "—"}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-wide text-slate-500">
+                  Offer
+                </p>
+                <p className="font-medium">
+                  {selectedProperty.offer ? "Yes" : "No"}
+                </p>
+              </div>
+            </div>
+
+            {/* Description */}
+            {selectedProperty.description && (
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-wide text-slate-500">
+                  Description
+                </p>
+                <p className="leading-relaxed text-slate-700 whitespace-pre-line">
+                  {selectedProperty.description}
+                </p>
+              </div>
+            )}
+
+            {/* Images */}
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-wide text-slate-500">
+                Images ({selectedProperty.imageUrls?.length || 0})
+              </p>
+              {(!selectedProperty.imageUrls ||
+                selectedProperty.imageUrls.length === 0) && (
+                <p className="text-xs text-slate-500">No images uploaded.</p>
+              )}
+              {selectedProperty.imageUrls?.length > 0 && (
+                <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
+                  {selectedProperty.imageUrls.map((url, i) => (
+                    <div
+                      key={i}
+                      className="relative group border rounded overflow-hidden bg-slate-50"
+                    >
+                      <img
+                        src={url}
+                        alt={`img-${i}`}
+                        className="h-24 w-full object-cover group-hover:opacity-90 transition"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => navigator.clipboard.writeText(url)}
+                        className="absolute bottom-1 right-1 text-[10px] px-1.5 py-0.5 rounded bg-black/50 text-white opacity-0 group-hover:opacity-100 transition"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <p className="text-xs text-slate-400">
+              View full details and management options in the Properties
+              section.
+            </p>
+          </div>
+        )}
+      </Dialog>
 
       {/* Footer removed as requested */}
     </div>
