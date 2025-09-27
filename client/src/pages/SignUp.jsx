@@ -29,7 +29,6 @@ export default function SignUp() {
         body: JSON.stringify(formData),
       });
       const data = await res.json();
-      console.log(data);
       if (data.success === false) {
         setLoading(false);
         setError(data.message);
@@ -49,47 +48,87 @@ export default function SignUp() {
     }
   };
 
-  console.log(formData);
   return (
-    <div className="p-3 max-w-lg mx-auto">
-      <h1 className="text-3xl text-center font-semibold my-7">Sign Up</h1>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4 ">
-        <input
-          type="text"
-          placeholder="username"
-          className="border p-3 rounded-lg"
-          id="username"
-          onChange={handleChange}
-        />
-        <input
-          type="email"
-          placeholder="email"
-          className="border p-3 rounded-lg"
-          id="email"
-          onChange={handleChange}
-        />
-        <input
-          type="password"
-          placeholder="password"
-          className="border p-3 rounded-lg"
-          id="password"
-          onChange={handleChange}
-        />
-        <button
-          disabled={loading}
-          className="bg-slate-700 text-white p-3 uppercase rounded-lg hover:opacity-95 disabled:opacity-80"
-        >
-          {loading ? "Loading..." : "SignUp"}
-        </button>
-        <OAuth />
-      </form>
-      <div className="flex gap-2 mt-5">
-        <p>Have an account?</p>
-        <Link to={"/sign-in"}>
-          <span className="text-blue-700 ">Sign in</span>
-        </Link>
+    <main className="relative min-h-screen bg-gradient-to-br from-slate-100 via-white to-emerald-50">
+      <div className="pointer-events-none absolute -right-36 top-16 h-72 w-72 rounded-full bg-emerald-200/40 blur-3xl" />
+      <div className="pointer-events-none absolute -left-24 bottom-24 h-80 w-80 rounded-full bg-emerald-100/60 blur-3xl" />
+
+      <div className="relative mx-auto flex min-h-screen max-w-5xl items-center justify-center px-4 py-16">
+        <div className="w-full rounded-3xl border border-emerald-100 bg-white/80 p-8 shadow-2xl shadow-emerald-100/70 backdrop-blur-sm sm:p-10 lg:p-14">
+          <div className="flex flex-col gap-3 text-center lg:text-left">
+            <span className="text-xs font-semibold uppercase tracking-[0.5em] text-emerald-500">
+              Sign Up
+            </span>
+            <h1 className="text-3xl font-semibold text-slate-900 sm:text-4xl">
+              Sign Up
+            </h1>
+          </div>
+
+          <form onSubmit={handleSubmit} className="mt-10 space-y-6">
+            <div className="rounded-2xl border border-emerald-100/80 bg-slate-50/70 px-4 py-3 shadow-inner shadow-emerald-50 focus-within:border-emerald-300">
+              <input
+                type="text"
+                placeholder="username"
+                className="w-full border-none bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
+                id="username"
+                onChange={handleChange}
+              />
+            </div>
+            <div className="rounded-2xl border border-emerald-100/80 bg-slate-50/70 px-4 py-3 shadow-inner shadow-emerald-50 focus-within:border-emerald-300">
+              <input
+                type="email"
+                placeholder="email"
+                className="w-full border-none bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
+                id="email"
+                onChange={handleChange}
+              />
+            </div>
+            <div className="rounded-2xl border border-emerald-100/80 bg-slate-50/70 px-4 py-3 shadow-inner shadow-emerald-50 focus-within:border-emerald-300">
+              <input
+                type="password"
+                placeholder="password"
+                className="w-full border-none bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
+                id="password"
+                onChange={handleChange}
+              />
+            </div>
+
+            <button
+              disabled={loading}
+              className="w-full rounded-full bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-600 px-6 py-3 text-sm font-semibold uppercase tracking-[0.3em] text-white shadow-lg shadow-emerald-200 transition hover:from-emerald-300 hover:via-emerald-400 hover:to-emerald-500 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {loading ? "Loading..." : "SignUp"}
+            </button>
+
+            <div className="relative py-1">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-emerald-100" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase tracking-[0.4em] text-emerald-400">
+                <span className="bg-white px-4 text-[10px]">Sign Up</span>
+              </div>
+            </div>
+
+            <OAuth />
+          </form>
+
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-2 text-sm text-slate-600 lg:justify-start">
+            <p className="text-slate-500">Have an account?</p>
+            <Link
+              to={"/sign-in"}
+              className="font-semibold text-emerald-600 transition hover:text-emerald-500"
+            >
+              Sign in
+            </Link>
+          </div>
+
+          {error && (
+            <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+              {error}
+            </div>
+          )}
+        </div>
       </div>
-      {error && <p className="text-red-500 mt-5">{error}</p>}
-    </div>
+    </main>
   );
 }
