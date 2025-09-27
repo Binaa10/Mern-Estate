@@ -1,6 +1,13 @@
 //import React from "react";
 import { FaSearch } from "react-icons/fa";
-import { FiChevronDown, FiGrid, FiLogOut, FiUser } from "react-icons/fi";
+import {
+  FiArrowUpRight,
+  FiChevronDown,
+  FiGrid,
+  FiLogOut,
+  FiUser,
+} from "react-icons/fi";
+import { HiOutlineMoon, HiOutlineSun } from "react-icons/hi";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { useEffect, useRef, useState } from "react";
@@ -10,6 +17,7 @@ import {
   signOutUserStart,
   signOutUserSuccess,
 } from "../redux/user/userSlice";
+import { useTheme } from "../hooks/useTheme";
 
 export default function Header() {
   const { currentUser } = useSelector((state) => state.user);
@@ -19,6 +27,34 @@ export default function Header() {
   const dispatch = useDispatch();
   const currentLocation = useLocation();
   const menuRef = useRef(null);
+  const { theme, toggleTheme } = useTheme();
+
+  const primaryLinks = [
+    { to: "/", label: "Home", match: (path) => path === "/" },
+    {
+      to: "/search",
+      label: "Browse",
+      match: (path) => path.startsWith("/search"),
+    },
+    {
+      to: "/about",
+      label: "About",
+      match: (path) => path.startsWith("/about"),
+    },
+  ];
+
+  if (currentUser?.isAdmin) {
+    primaryLinks.push({
+      to: "/admin",
+      label: "Admin",
+      match: (path) => path.startsWith("/admin"),
+    });
+  }
+
+  const isLinkActive = (link) =>
+    link.match
+      ? link.match(currentLocation.pathname)
+      : currentLocation.pathname === link.to;
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -27,6 +63,24 @@ export default function Header() {
     const searchQuery = urlParams.toString();
     navigate(`/search?${searchQuery}`);
   };
+
+  const renderSearchForm = (additionalClasses = "") => (
+    <form
+      onSubmit={handleSubmit}
+      className={`flex items-center rounded-lg border border-slate-500/40 bg-slate-100/90 px-3 py-2 text-slate-700 shadow-sm backdrop-blur transition-colors focus-within:border-green-300 dark:border-slate-600 dark:bg-slate-800/90 dark:text-slate-200 ${additionalClasses}`}
+    >
+      <input
+        type="text"
+        placeholder="Search properties..."
+        className="w-28 bg-transparent text-sm focus:outline-none sm:w-64"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+      />
+      <button type="submit" aria-label="Search listings">
+        <FaSearch className="text-slate-500 transition-colors hover:text-slate-700 dark:text-slate-300 dark:hover:text-slate-100" />
+      </button>
+    </form>
+  );
 
   useEffect(() => {
     const urlParams = new URLSearchParams(currentLocation.search);
@@ -104,126 +158,192 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-slate-700 shadow-md">
-      <div className="flex justify-between items-center max-w-6xl mx-auto p-3">
-        <Link to="/">
-          <h1 className="font-bold text-sm sm:text-xl ">
-            <span className="text-slate-100">Binios</span>
-            <span className="text-green-300">Estate</span>
-          </h1>
-        </Link>
-
-        <form
-          onSubmit={handleSubmit}
-          className="bg-slate-100 p-3 rounded-lg flex items-center"
-        >
-          <input
-            type="text"
-            placeholder="search..."
-            className="bg-transparent focus:outline-none w-24 sm:w-64"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <button>
-            <FaSearch className="text-slate-600" />
-          </button>
-        </form>
-        <ul className="flex items-center gap-4">
-          <li className="hidden sm:inline text-slate-100 hover:underline">
-            <Link to="/">Home</Link>
-          </li>
-          <li className="hidden sm:inline text-slate-100 hover:underline">
-            <Link to="/about">About</Link>
-          </li>
-          {currentUser?.isAdmin && (
-            <li className="hidden sm:inline text-slate-100 hover:underline">
-              <Link to="/admin">Admin</Link>
-            </li>
-          )}
-          {currentUser ? (
-            <li className="relative" ref={menuRef}>
-              <button
-                type="button"
-                onClick={toggleMenu}
-                className="flex items-center gap-2 rounded-full border border-slate-500/30 bg-slate-800/60 px-1.5 py-1 pr-2 text-slate-200 shadow-sm transition duration-150 hover:border-green-300/60 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-green-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-700"
-                aria-haspopup="menu"
-                aria-expanded={isMenuOpen}
-              >
-                <span className="sr-only">Open user menu</span>
-                <img
-                  className="h-9 w-9 rounded-full object-cover ring-2 ring-slate-900/40"
-                  src={currentUser.avatar}
-                  alt="profile"
-                />
-                <FiChevronDown
-                  aria-hidden="true"
-                  className={`hidden text-base transition-transform duration-150 sm:block ${
-                    isMenuOpen ? "rotate-180 text-green-300" : "text-slate-300"
+    <header className="relative z-50 bg-[#2c3b4f] text-slate-100 shadow-lg shadow-slate-900/20 transition-colors dark:bg-slate-900 dark:text-slate-100">
+      <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
+        <div className="flex w-full flex-wrap items-center justify-between gap-4">
+          <Link to="/" className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-green-300 via-emerald-500 to-emerald-600 text-lg font-bold text-slate-900 shadow-lg shadow-emerald-500/30 ring-2 ring-emerald-500/40">
+              BE
+            </div>
+            <div>
+              <h1 className="font-semibold text-lg sm:text-2xl">
+                <span className="text-slate-100">Binios</span>{" "}
+                <span className="text-green-300">Estate</span>
+              </h1>
+              <p className="mt-1 hidden text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-300/80 sm:block">
+                Residential • Commercial • Advisory
+              </p>
+            </div>
+          </Link>
+          <nav className="hidden items-center gap-6 lg:flex">
+            {primaryLinks.map((link) => {
+              const active = isLinkActive(link);
+              return (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  className={`group relative px-1 text-sm font-medium tracking-wide transition-colors ${
+                    active ? "text-white" : "text-slate-200 hover:text-white"
                   }`}
-                />
-              </button>
-              {isMenuOpen && (
-                <div
-                  className="absolute right-0 mt-3 w-60 overflow-hidden rounded-2xl border border-slate-200/70 bg-white/95 pb-2 pt-3 shadow-2xl backdrop-blur-sm ring-1 ring-black/5 z-[1100]"
-                  role="menu"
                 >
-                  <div className="border-b border-slate-100/80 px-4 pb-3">
-                    <p className="text-sm font-semibold text-slate-900">
-                      {currentUser.username}
-                    </p>
-                    {currentUser.email && (
-                      <p className="text-xs text-slate-500">
-                        {currentUser.email}
+                  <span>{link.label}</span>
+                  <span
+                    className={`absolute -bottom-2 left-0 h-[2px] w-full origin-left scale-x-0 bg-gradient-to-r from-green-300 to-emerald-400 transition-transform duration-200 group-hover:scale-x-100 ${
+                      active ? "scale-x-100" : ""
+                    }`}
+                  />
+                </Link>
+              );
+            })}
+          </nav>
+          <div className="flex items-center gap-2 sm:gap-3">
+            {renderSearchForm("hidden md:flex")}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={
+                theme === "dark"
+                  ? "Switch to light mode"
+                  : "Switch to dark mode"
+              }
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-400/60 bg-[#243143] text-slate-200 shadow-sm transition hover:border-green-300 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-green-200 focus-visible:ring-offset-2 focus-visible:ring-offset-[#2c3b4f] dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-green-500 dark:hover:text-slate-100 dark:focus-visible:ring-offset-slate-900"
+            >
+              {theme === "dark" ? (
+                <HiOutlineSun className="h-5 w-5" />
+              ) : (
+                <HiOutlineMoon className="h-5 w-5" />
+              )}
+            </button>
+            <Link
+              to={currentUser ? "/create-listing" : "/sign-in"}
+              className="hidden items-center gap-2 rounded-full bg-gradient-to-r from-green-300 via-emerald-500 to-emerald-600 px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg shadow-emerald-500/25 transition hover:from-green-200 hover:via-emerald-400 hover:to-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200 focus-visible:ring-offset-2 focus-visible:ring-offset-[#2c3b4f] dark:focus-visible:ring-offset-slate-900 md:inline-flex"
+            >
+              <span>List a Property</span>
+              <FiArrowUpRight className="h-4 w-4" />
+            </Link>
+            {currentUser ? (
+              <div className="relative" ref={menuRef}>
+                <button
+                  type="button"
+                  onClick={toggleMenu}
+                  className="flex items-center gap-2 rounded-full border border-slate-400/60 bg-[#243143] px-1.5 py-1 pr-2 text-slate-100 shadow-sm transition duration-150 hover:border-green-300 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-green-200 focus-visible:ring-offset-2 focus-visible:ring-offset-[#2c3b4f] dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-green-500 dark:hover:text-white dark:focus-visible:ring-offset-slate-900"
+                  aria-haspopup="menu"
+                  aria-expanded={isMenuOpen}
+                >
+                  <span className="sr-only">Open user menu</span>
+                  <img
+                    className="h-9 w-9 rounded-full object-cover ring-2 ring-slate-200 dark:ring-slate-600"
+                    src={
+                      currentUser.avatar ||
+                      "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"
+                    }
+                    alt="profile"
+                  />
+                  <FiChevronDown
+                    aria-hidden="true"
+                    className={`hidden text-base transition-transform duration-150 sm:block ${
+                      isMenuOpen
+                        ? "rotate-180 text-green-300"
+                        : "text-slate-300 dark:text-slate-500"
+                    }`}
+                  />
+                </button>
+                {isMenuOpen && (
+                  <div
+                    className="absolute right-0 z-[1100] mt-3 w-60 overflow-hidden rounded-2xl border border-slate-200/70 bg-white/95 pb-2 pt-3 shadow-2xl backdrop-blur-sm ring-1 ring-black/5 transition dark:border-slate-600 dark:bg-slate-800/95"
+                    role="menu"
+                  >
+                    <div className="border-b border-slate-100/80 px-4 pb-3">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        {currentUser.username}
                       </p>
-                    )}
-                  </div>
-                  <div className="flex flex-col py-1">
-                    {currentUser.isAdmin && (
+                      {currentUser.email && (
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {currentUser.email}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex flex-col py-1">
+                      {currentUser.isAdmin && (
+                        <button
+                          onClick={() => handleNavigate("/admin")}
+                          className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100/70 dark:text-slate-200 dark:hover:bg-slate-700"
+                          role="menuitem"
+                        >
+                          <FiGrid
+                            className="text-base text-green-500"
+                            aria-hidden="true"
+                          />
+                          <span>Dashboard</span>
+                        </button>
+                      )}
                       <button
-                        onClick={() => handleNavigate("/admin")}
-                        className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100/70"
+                        onClick={() =>
+                          handleNavigate(
+                            currentUser.isAdmin ? "/admin/profile" : "/profile"
+                          )
+                        }
+                        className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100/70 dark:text-slate-200 dark:hover:bg-slate-700"
                         role="menuitem"
                       >
-                        <FiGrid
-                          className="text-base text-green-500"
+                        <FiUser
+                          className="text-base text-blue-500"
                           aria-hidden="true"
                         />
-                        <span>Dashboard</span>
+                        <span>Profile</span>
                       </button>
-                    )}
-                    <button
-                      onClick={() =>
-                        handleNavigate(
-                          currentUser.isAdmin ? "/admin/profile" : "/profile"
-                        )
-                      }
-                      className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100/70"
-                      role="menuitem"
-                    >
-                      <FiUser
-                        className="text-base text-blue-500"
-                        aria-hidden="true"
-                      />
-                      <span>Profile</span>
-                    </button>
-                    <button
-                      onClick={handleSignOut}
-                      className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
-                      role="menuitem"
-                    >
-                      <FiLogOut className="text-base" aria-hidden="true" />
-                      <span>Sign out</span>
-                    </button>
+                      <button
+                        onClick={handleSignOut}
+                        className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-semibold text-rose-600 transition hover:bg-rose-50 dark:hover:bg-rose-500/20"
+                        role="menuitem"
+                      >
+                        <FiLogOut className="text-base" aria-hidden="true" />
+                        <span>Sign out</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
-              )}
-            </li>
-          ) : (
-            <li className="text-slate-100 hover:underline">
-              <Link to="/sign-in">Sign in</Link>
-            </li>
-          )}
-        </ul>
+                )}
+              </div>
+            ) : (
+              <Link
+                to="/sign-in"
+                className="inline-flex items-center gap-2 rounded-full border border-slate-400/70 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-green-300 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-green-200 focus-visible:ring-offset-2 focus-visible:ring-offset-[#2c3b4f] dark:border-slate-600 dark:hover:border-green-500"
+              >
+                Sign in
+              </Link>
+            )}
+          </div>
+        </div>
+        <div className="flex flex-col gap-3 pb-2 lg:hidden">
+          {renderSearchForm("w-full md:hidden")}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex w-full gap-2 overflow-x-auto pb-1">
+              {primaryLinks.map((link) => {
+                const active = isLinkActive(link);
+                return (
+                  <Link
+                    key={`${link.to}-mobile`}
+                    to={link.to}
+                    className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                      active
+                        ? "bg-gradient-to-r from-green-300 to-emerald-500 text-slate-900"
+                        : "bg-[#243143] text-slate-200 hover:bg-[#2f435c]"
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              })}
+            </div>
+            <Link
+              to={currentUser ? "/create-listing" : "/sign-in"}
+              className="inline-flex shrink-0 items-center gap-1 rounded-full border border-green-400/70 px-3 py-1.5 text-xs font-semibold text-green-200 transition hover:border-green-300 hover:text-white md:hidden"
+            >
+              List
+              <FiArrowUpRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        </div>
       </div>
     </header>
   );

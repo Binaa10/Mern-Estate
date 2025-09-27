@@ -1,79 +1,242 @@
-import React from "react";
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { useSelector } from "react-redux";
+import toast from "react-hot-toast";
 import { MdLocationOn } from "react-icons/md";
-import { FiPhone, FiMail } from "react-icons/fi";
+import {
+  FiArrowRight,
+  FiArrowUpRight,
+  FiCheck,
+  FiClock,
+  FiMail,
+  FiPhone,
+  FiShield,
+  FiTrendingUp,
+} from "react-icons/fi";
 import { FaFacebook, FaTwitter, FaLinkedinIn, FaGithub } from "react-icons/fa";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
+  const { currentUser } = useSelector((state) => state.user);
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+
+  const quickLinks = [
+    { label: "Home", to: "/" },
+    { label: "Explore Listings", to: "/search" },
+    { label: "About Us", to: "/about" },
+    { label: "Privacy Policy", to: "/privacy-policy" },
+  ];
+
+  if (!currentUser) {
+    quickLinks.push({ label: "Sign In", to: "/sign-in" });
+  } else if (currentUser.isAdmin) {
+    quickLinks.push({ label: "Admin Console", to: "/admin" });
+  }
+
+  const contactDetails = [
+    { icon: FiPhone, label: "+251 993 592 990", href: "tel:+251993592990" },
+    {
+      icon: FiMail,
+      label: "biniyambiyadge@gmail.com",
+      href: "mailto:biniyambiyadge@gmail.com",
+    },
+    { icon: MdLocationOn, label: "Addis Ababa, Ethiopia" },
+    { icon: FiClock, label: "Mon - Sat: 8:00 AM – 7:00 PM" },
+  ];
+
+  const socialLinks = [
+    { href: "#", label: "Facebook", icon: FaFacebook },
+    { href: "https://x.com/abuabu5929", label: "Twitter", icon: FaTwitter },
+    {
+      href: "https://www.linkedin.com/in/biniyam-biyadge/",
+      label: "LinkedIn",
+      icon: FaLinkedinIn,
+    },
+    {
+      href: "https://github.com/Binaa10",
+      label: "GitHub",
+      icon: FaGithub,
+    },
+  ];
+
+  const handleSubscribe = (event) => {
+    event.preventDefault();
+    const trimmedEmail = newsletterEmail.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(trimmedEmail)) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+
+    toast.success("You're on the list! Expect tailored market updates soon.");
+    setNewsletterEmail("");
+  };
 
   return (
-    <footer className="bg-slate-700 text-white px-6 pt-8 pb-4">
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-6 md:gap-12 px-6">
-        {/* Contact Info */}
-        <div className="space-y-3">
-          <div className="flex items-center">
-            <MdLocationOn className="h-5 w-5" />
-            <span className="ml-2 font-medium">Addis Ababa, Ethiopia</span>
+    <footer className="relative mt-20 bg-[#1f2a36] text-slate-200">
+      <span
+        className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-400 via-green-300 to-emerald-500"
+        aria-hidden="true"
+      />
+      <div className="mx-auto max-w-7xl space-y-10 px-4 py-14 sm:px-6 lg:px-8">
+        <div className="grid gap-10 md:grid-cols-12">
+          <div className="space-y-6 md:col-span-5">
+            <Link to="/" className="inline-flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-green-300 via-emerald-500 to-emerald-600 text-lg font-bold text-slate-900 shadow-lg shadow-emerald-500/30 ring-2 ring-emerald-500/40">
+                BE
+              </div>
+              <div>
+                <p className="text-xl font-semibold text-slate-100">
+                  Binios Estate
+                </p>
+                <p className="text-xs uppercase tracking-[0.32em] text-slate-400">
+                  Real Estate Excellence
+                </p>
+              </div>
+            </Link>
+            <p className="text-sm leading-relaxed text-slate-400">
+              We combine deep market intelligence with concierge-level service
+              to match investors, homeowners, and tenants with properties that
+              unlock long-term value.
+            </p>
+            <div className="flex flex-wrap items-center gap-4 text-sm text-slate-300/90">
+              <span className="inline-flex items-center gap-2 rounded-full border border-slate-600/50 px-3 py-1">
+                <FiCheck className="h-4 w-4 text-green-300" />
+                Licensed & Insured
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-full border border-slate-600/50 px-3 py-1">
+                <FiTrendingUp className="h-4 w-4 text-green-300" />
+                Market Analytics
+              </span>
+            </div>
+            <div className="flex items-center gap-3 text-xl text-slate-300">
+              {socialLinks.map((social) => {
+                const IconComponent = social.icon;
+
+                return (
+                  <a
+                    key={social.label}
+                    href={social.href}
+                    aria-label={social.label}
+                    className="transition hover:text-green-300"
+                    target={
+                      social.href.startsWith("http") ? "_blank" : undefined
+                    }
+                    rel={
+                      social.href.startsWith("http") ? "noreferrer" : undefined
+                    }
+                  >
+                    <IconComponent />
+                  </a>
+                );
+              })}
+            </div>
           </div>
-          <div className="flex items-center">
-            <FiPhone className="h-5 w-5" />
-            <span className="ml-2 font-medium">+251993592990</span>
-          </div>
-          <div className="flex items-center">
-            <FiMail className="h-5 w-5" />
-            <a
-              href="mailto:biniyambiyadge@gmail.com"
-              className="ml-2 font-medium hover:underline text-blue-400"
-            >
-              biniyambiyadge@gmail.com
-            </a>
+
+          <div className="grid gap-8 md:col-span-7 sm:grid-cols-2 lg:grid-cols-3">
+            <div>
+              <h3 className="text-sm font-semibold uppercase tracking-[0.28em] text-slate-300">
+                Quick Links
+              </h3>
+              <ul className="mt-4 space-y-3 text-sm">
+                {quickLinks.map(({ label, to }) => (
+                  <li key={label}>
+                    <Link
+                      to={to}
+                      className="group inline-flex items-center gap-2 text-slate-300 transition hover:text-white"
+                    >
+                      <FiArrowRight className="h-4 w-4 text-green-300 opacity-0 transition group-hover:opacity-100" />
+                      <span>{label}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-semibold uppercase tracking-[0.28em] text-slate-300">
+                Contact
+              </h3>
+              <ul className="mt-4 space-y-3 text-sm text-slate-300">
+                {contactDetails.map((detail) => {
+                  const IconComponent = detail.icon;
+
+                  return (
+                    <li key={detail.label} className="flex items-start gap-3">
+                      <span className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-lg bg-[#2f3f54] text-green-300">
+                        <IconComponent className="h-4 w-4" />
+                      </span>
+                      {detail.href ? (
+                        <a
+                          href={detail.href}
+                          className="pt-1 text-slate-300 transition hover:text-white"
+                        >
+                          {detail.label}
+                        </a>
+                      ) : (
+                        <span className="pt-1 text-slate-300">
+                          {detail.label}
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+
+            <div className="sm:col-span-2 lg:col-span-1">
+              <h3 className="text-sm font-semibold uppercase tracking-[0.28em] text-slate-300">
+                Newsletter
+              </h3>
+              <p className="mt-4 text-sm text-slate-400">
+                Get curated property opportunities, trend reports, and tactical
+                advice delivered weekly.
+              </p>
+              <form onSubmit={handleSubscribe} className="mt-4 space-y-3">
+                <div className="flex items-center gap-2 rounded-full border border-slate-600/60 bg-[#2f3f54] px-3 py-1.5 focus-within:border-green-300">
+                  <FiMail className="h-4 w-4 text-slate-400" />
+                  <input
+                    type="email"
+                    name="newsletter-email"
+                    value={newsletterEmail}
+                    onChange={(event) => setNewsletterEmail(event.target.value)}
+                    placeholder="you@example.com"
+                    className="w-full bg-transparent text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none"
+                    aria-label="Email address"
+                    required
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-green-300 via-emerald-500 to-emerald-600 px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg shadow-emerald-500/25 transition hover:from-green-200 hover:via-emerald-400 hover:to-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1f2a36]"
+                >
+                  Subscribe
+                  <FiArrowUpRight className="h-4 w-4" />
+                </button>
+              </form>
+              <p className="mt-3 text-xs text-slate-500">
+                We respect your inbox. Unsubscribe anytime with a single click.
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* About & Socials */}
-        <div className="space-y-3 max-w-md">
-          <h3 className="text-lg font-semibold">About Binios Estate</h3>
-          <p className="text-sm text-gray-300">
-            Binios Estate is a trusted real estate agency in Ethiopia,
-            specializing in premium apartments, residential homes, and
-            commercial properties.
+        <div className="flex flex-col gap-4 border-t border-slate-800 pt-6 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+          <p>
+            © {currentYear} Binios Estate. Crafted thoughtfully in Ethiopia.
           </p>
-          <p className="text-sm">Connect with us on:</p>
-          <div className="flex space-x-4 text-xl">
-            <a href="#" aria-label="Facebook" className="hover:text-blue-400">
-              <FaFacebook />
-            </a>
-            <a
-              href="https://x.com/abuabu5929"
-              aria-label="Twitter"
-              className="hover:text-blue-400"
-            >
-              <FaTwitter />
-            </a>
-            <a
-              href="https://www.linkedin.com/in/biniyam-biyadge/"
-              aria-label="LinkedIn"
-              className="hover:text-blue-500"
-            >
-              <FaLinkedinIn />
-            </a>
-            <a
-              href="https://github.com/Binaa10"
-              aria-label="GitHub"
-              className="hover:text-blue-500"
-            >
-              <FaGithub />
-            </a>
+          <div className="flex flex-wrap items-center gap-4">
+            <span className="inline-flex items-center gap-2">
+              <FiShield className="h-4 w-4 text-green-300" />
+              Secure Transactions
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <FiCheck className="h-4 w-4 text-green-300" />
+              Responsible Investing
+            </span>
           </div>
         </div>
-      </div>
-
-      {/* Divider */}
-      <div className="border-t border-gray-600 my-6" />
-
-      {/* Copyright */}
-      <div className="text-center text-sm text-gray-300">
-        © {currentYear} Binios Estate. All rights reserved.
       </div>
     </footer>
   );

@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import "./index.css";
 import Home from "./pages/Home";
 import About from "./pages/About";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Profile from "./pages/Profile";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
@@ -35,6 +36,7 @@ export default function App() {
         <Route path="/sign-in" element={<SignIn />}></Route>
         <Route path="/sign-up" element={<SignUp />}></Route>
         <Route path="/about" element={<About />}></Route>
+        <Route path="/privacy-policy" element={<PrivacyPolicy />}></Route>
         <Route path="listing/:listingId" element={<Listing />}></Route>
         <Route path="/search" element={<Search />}></Route>
         <Route element={<PrivateRoute />}>

@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Button } from "../../components/ui/button";
+import React from "react";
+import { NavLink, Outlet } from "react-router-dom";
 import { useSelector } from "react-redux";
 import {
   HiOutlineHome,
@@ -8,8 +7,6 @@ import {
   HiOutlineUsers,
   HiOutlineOfficeBuilding,
   HiOutlineUser,
-  HiOutlineMoon,
-  HiOutlineSun,
   HiOutlinePlusCircle,
   HiOutlineClipboardList,
 } from "react-icons/hi";
@@ -38,30 +35,6 @@ const links = [
 
 export default function AdminLayout() {
   const { currentUser } = useSelector((s) => s.user);
-  const location = useLocation();
-  const [theme, setTheme] = useState(() =>
-    typeof window !== "undefined" && localStorage.getItem("admin-theme")
-      ? localStorage.getItem("admin-theme")
-      : "light"
-  );
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-    localStorage.setItem("admin-theme", theme);
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme((t) => (t === "light" ? "dark" : "light"));
-  };
-
-  const activeLink = useMemo(() => {
-    const path = location.pathname.replace(/\/$/, "");
-    return (
-      links.find((l) => (l.end ? path === l.to : path.startsWith(l.to))) ?? null
-    );
-  }, [location.pathname]);
-
-  const pageTitle = activeLink?.label || "Admin";
 
   return (
     <div className="min-h-[calc(100vh-60px)] flex bg-slate-50 dark:bg-slate-900 dark:text-slate-100 transition-colors">
@@ -100,37 +73,6 @@ export default function AdminLayout() {
         </div>
       </aside>
       <div className="flex-1 flex flex-col">
-        <header className="bg-white dark:bg-slate-950 border-b dark:border-slate-800 px-4 lg:px-6 py-3">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                {pageTitle}
-              </h1>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={toggleTheme}
-              className="gap-2"
-              aria-label="Toggle theme"
-              title={
-                theme === "light"
-                  ? "Switch to dark mode"
-                  : "Switch to light mode"
-              }
-            >
-              {theme === "light" ? (
-                <HiOutlineMoon className="h-4 w-4" />
-              ) : (
-                <HiOutlineSun className="h-4 w-4" />
-              )}
-              <span className="hidden sm:block">
-                {theme === "light" ? "Dark" : "Light"}
-              </span>
-            </Button>
-          </div>
-        </header>
-
         <div className="md:hidden border-b bg-white dark:bg-slate-950 dark:border-slate-800 p-2 flex gap-2 overflow-x-auto">
           {links.map((l) => (
             <NavLink

@@ -61,44 +61,71 @@ export const getListing = async (req, res, next) => {
 
 export const getListings = async (req, res, next) => {
   try {
-    const limit = parseInt(req.query.limit) || 9;
-    const startIndex = parseInt(req.query.startIndex) || 0;
-    let offer = req.query.offer;
+    const limit = Math.max(parseInt(req.query.limit, 10) || 9, 1);
+    const pageParam = parseInt(req.query.page, 10);
+    const startIndexParam = parseInt(req.query.startIndex, 10);
 
-    if (offer === undefined || offer === false) {
-      offer = { $in: [false, true] };
-    }
-    let furnished = req.query.furnished;
-    if (furnished === undefined || furnished === false) {
-      furnished = { $in: [false, true] };
-    }
-    let parking = req.query.parking;
-    if (parking === undefined || parking === false) {
-      parking = { $in: [false, true] };
-    }
-    let type = req.query.type;
-    if (type === undefined || type === "all") {
-      type = { $in: ["sale", "rent"] };
-    }
+    const skip =
+      !Number.isNaN(pageParam) && pageParam > 0
+        ? (pageParam - 1) * limit
+        : !Number.isNaN(startIndexParam) && startIndexParam >= 0
+        ? startIndexParam
+        : 0;
+
+    const allowedSortFields = [
+      "createdAt",
+      "updatedAt",
+      "regularPrice",
+      "discountPrice",
+    ];
 
     const searchTerm = req.query.searchTerm || "";
-    const sort = req.query.sort || "CreatedAt";
-    const order = req.query.order || "desc";
+    const sort = allowedSortFields.includes(req.query.sort)
+      ? req.query.sort
+      : "createdAt";
+    const order = req.query.order === "asc" ? 1 : -1;
 
-    const listings = await Listing.find({
+    const offerFilter =
+      req.query.offer === undefined || req.query.offer === "false"
+        ? { $in: [false, true] }
+        : true;
+    const furnishedFilter =
+      req.query.furnished === undefined || req.query.furnished === "false"
+        ? { $in: [false, true] }
+        : true;
+    const parkingFilter =
+      req.query.parking === undefined || req.query.parking === "false"
+        ? { $in: [false, true] }
+        : true;
+    const typeFilter =
+      req.query.type === undefined || req.query.type === "all"
+        ? { $in: ["sale", "rent"] }
+        : req.query.type;
+
+    const filters = {
       name: { $regex: searchTerm, $options: "i" },
-      offer,
-      furnished,
-      parking,
-      type,
-    })
-      .sort({
-        [sort]: order,
-      })
-      .limit(limit)
-      .skip(startIndex);
+      offer: offerFilter,
+      furnished: furnishedFilter,
+      parking: parkingFilter,
+      type: typeFilter,
+    };
 
-    return res.status(200).json(listings);
+    const totalCount = await Listing.countDocuments(filters);
+
+    const listings = await Listing.find(filters)
+      .sort({ [sort]: order })
+      .skip(skip)
+      .limit(limit);
+
+    const currentPage =
+      !Number.isNaN(pageParam) && pageParam > 0
+        ? pageParam
+        : Math.floor(skip / limit) + 1;
+    const totalPages = Math.max(Math.ceil(totalCount / limit), 1);
+
+    return res
+      .status(200)
+      .json({ listings, totalCount, page: currentPage, totalPages, limit });
   } catch (error) {
     next(error);
   }
