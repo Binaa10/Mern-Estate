@@ -282,7 +282,7 @@ export default function AdminProfile() {
                   }}
                   disabled={avatarUploading}
                   title="Change profile picture"
-                  className="absolute -bottom-2 -right-2 inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-white shadow-lg transition hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400"
+                  className="absolute bottom-0 right-0 inline-flex h-10 w-10 translate-x-1/4 translate-y-1/4 items-center justify-center rounded-full border-2 border-white bg-slate-900 text-white shadow-lg transition hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400"
                   aria-label="Change profile picture"
                 >
                   <HiOutlinePencil className="h-5 w-5" />
