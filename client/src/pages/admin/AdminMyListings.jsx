@@ -41,6 +41,44 @@ export default function AdminMyListings() {
     };
   }, [listings]);
 
+  const summaryMetrics = [
+    {
+      key: "total",
+      label: "Total listings",
+      value: summary.total,
+      note: "All entries",
+      accent: "from-indigo-500/20 to-indigo-100/40 text-indigo-600",
+    },
+    {
+      key: "active",
+      label: "Active",
+      value: summary.active,
+      note: "Live now",
+      accent: "from-emerald-500/20 to-emerald-100/40 text-emerald-600",
+    },
+    {
+      key: "inactive",
+      label: "Inactive",
+      value: summary.inactive,
+      note: "Hidden",
+      accent: "from-slate-500/20 to-slate-100/40 text-slate-600",
+    },
+    {
+      key: "offers",
+      label: "Offers",
+      value: summary.offers,
+      note: "Discounted",
+      accent: "from-amber-500/20 to-amber-100/40 text-amber-600",
+    },
+    {
+      key: "ratio",
+      label: "Rent vs Sale",
+      value: `${summary.rent}/${summary.sale}`,
+      note: "Rent / Sale",
+      accent: "from-sky-500/20 to-sky-100/40 text-sky-600",
+    },
+  ];
+
   const loadListings = useCallback(async () => {
     if (!currentUser?._id) return;
     const parseJson = async (response) => {
@@ -167,104 +205,115 @@ export default function AdminMyListings() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">My Listings</h1>
-        <p className="text-sm text-slate-500">
-          Manage the properties created under your admin account
-        </p>
-      </div>
+      <section className="overflow-hidden rounded-3xl border border-slate-200/70 bg-white shadow-xl">
+        <div className="flex flex-col gap-6 p-8">
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
+              Admin workspace
+            </p>
+            <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
+                  My Listings
+                </h1>
+                <p className="mt-2 max-w-xl text-sm text-slate-500">
+                  Manage the properties created under your admin account and
+                  keep them up to date.
+                </p>
+              </div>
+              <div className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs text-slate-600">
+                Updated automatically after each change
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+            {loading && listings.length === 0
+              ? Array.from({ length: 5 }).map((_, index) => (
+                  <Card
+                    key={`summary-skeleton-${index}`}
+                    className="border-none bg-slate-100 shadow-none animate-pulse"
+                  >
+                    <CardContent className="space-y-4 py-6">
+                      <div className="h-3 w-24 rounded-full bg-slate-200" />
+                      <div className="h-8 w-16 rounded-lg bg-slate-200" />
+                      <div className="h-5 w-24 rounded-full bg-slate-200" />
+                    </CardContent>
+                  </Card>
+                ))
+              : summaryMetrics.map((metric) => (
+                  <Card
+                    key={metric.key}
+                    className="relative overflow-hidden border-none bg-white/90 shadow-lg shadow-slate-200/70 transition hover:-translate-y-1 hover:shadow-xl"
+                  >
+                    <div
+                      className={`absolute inset-0 bg-gradient-to-br ${metric.accent} opacity-40`}
+                    />
+                    <div className="absolute inset-x-6 top-6 h-20 rounded-full bg-white/40 blur-2xl" />
+                    <CardHeader className="relative z-10 pb-2">
+                      <CardDescription className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">
+                        {metric.label}
+                      </CardDescription>
+                      <CardTitle className="mt-4 text-3xl font-bold text-slate-900">
+                        {metric.value}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="relative z-10 pt-0">
+                      <span className="inline-flex items-center rounded-full bg-white/70 px-3 py-1 text-[11px] font-semibold text-slate-600">
+                        {metric.note}
+                      </span>
+                    </CardContent>
+                  </Card>
+                ))}
+          </div>
+        </div>
+      </section>
 
       {(error || message) && (
         <div
-          className={`text-sm border px-3 py-2 rounded ${
+          className={`rounded-xl border px-4 py-3 text-sm shadow-sm ${
             error
-              ? "text-red-700 bg-red-100 border-red-200"
-              : "text-green-700 bg-green-100 border-green-200"
+              ? "border-red-200 bg-red-50 text-red-700"
+              : "border-emerald-200 bg-emerald-50 text-emerald-700"
           }`}
         >
           {error || message}
         </div>
       )}
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        {[
-          {
-            label: "Total Listings",
-            value: summary.total,
-            helper: "All entries",
-            helperClass: "bg-indigo-100 text-indigo-700",
-          },
-          {
-            label: "Active",
-            value: summary.active,
-            helper: "Live now",
-            helperClass: "bg-emerald-100 text-emerald-700",
-          },
-          {
-            label: "Inactive",
-            value: summary.inactive,
-            helper: "Hidden",
-            helperClass: "bg-slate-200 text-slate-700",
-          },
-          {
-            label: "Offers",
-            value: summary.offers,
-            helper: "Discounted",
-            helperClass: "bg-amber-100 text-amber-700",
-          },
-          {
-            label: "Rent vs Sale",
-            value: `${summary.rent}/${summary.sale}`,
-            helper: "Rent / Sale",
-            helperClass: "bg-slate-100 text-slate-700",
-          },
-        ].map((card) => (
-          <div
-            key={card.label}
-            className="rounded-xl border bg-white p-5 shadow-sm flex flex-col gap-3"
-          >
-            <span className="text-sm font-medium text-slate-500">
-              {card.label}
-            </span>
-            <span className="text-3xl font-semibold text-slate-900">
-              {card.value}
-            </span>
-            <span
-              className={`inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-medium ${card.helperClass}`}
-            >
-              {card.helper}
-            </span>
-          </div>
-        ))}
-      </div>
 
-      <Card>
-        <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <Card className="border-slate-200/70 shadow-md">
+        <CardHeader className="flex flex-col gap-3 rounded-2xl bg-slate-50/60 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <CardTitle className="text-lg">Your Listings</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-xl font-semibold text-slate-900">
+              Your Listings
+            </CardTitle>
+            <CardDescription className="text-sm text-slate-600">
               Only listings created by {currentUser?.username || "you"}
             </CardDescription>
           </div>
-          <Button onClick={() => navigate("/admin/create-listing")}>
+          <Button
+            onClick={() => navigate("/admin/create-listing")}
+            className="rounded-xl px-5 py-2.5"
+          >
             Create New Listing
           </Button>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4 px-0 py-6 sm:px-6">
           {loading ? (
-            <div className="py-12 text-center text-sm text-slate-500">
+            <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-white/60 py-14 text-sm text-slate-500">
               Loading your listings...
             </div>
           ) : listings.length === 0 ? (
-            <div className="py-12 text-center text-sm text-slate-500">
+            <div className="flex items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 py-14 text-sm text-slate-500">
               You haven't created any listings yet.
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
+            <div className="overflow-hidden rounded-2xl border border-slate-200">
+              <Table className="bg-white text-sm">
                 <THead>
-                  <TR>
-                    <TH>Image</TH>
-                    <TH>Name</TH>
+                  <TR className="bg-slate-50 text-slate-600">
+                    <TH className="w-[110px]">Image</TH>
+                    <TH className="w-[220px]">Name</TH>
                     <TH>Created</TH>
                     <TH>Status</TH>
                     <TH>Price</TH>
@@ -273,9 +322,9 @@ export default function AdminMyListings() {
                 </THead>
                 <TBody>
                   {listings.map((listing) => (
-                    <TR key={listing._id}>
+                    <TR key={listing._id} className="bg-white/60">
                       <TD>
-                        <div className="h-12 w-16 overflow-hidden rounded-md bg-slate-100 dark:bg-slate-800">
+                        <div className="h-14 w-20 overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
                           {listing.imageUrls?.[0] ? (
                             <img
                               src={listing.imageUrls[0]}
@@ -283,22 +332,22 @@ export default function AdminMyListings() {
                               className="h-full w-full object-cover"
                             />
                           ) : (
-                            <div className="flex h-full w-full items-center justify-center text-[10px] text-slate-400">
+                            <div className="flex h-full w-full items-center justify-center text-[11px] text-slate-400">
                               No image
                             </div>
                           )}
                         </div>
                       </TD>
-                      <TD className="max-w-[220px]">
-                        <div className="flex flex-col">
+                      <TD className="max-w-[220px] align-top">
+                        <div className="flex flex-col gap-1">
                           <Link
                             to={`/listing/${listing._id}`}
-                            className="font-medium text-slate-900 dark:text-slate-100 hover:underline truncate"
+                            className="truncate text-sm font-semibold text-slate-900 hover:text-indigo-600 hover:underline"
                           >
                             {listing.name}
                           </Link>
-                          <span className="text-xs text-slate-500 truncate">
-                            {listing.address}
+                          <span className="truncate text-xs text-slate-500">
+                            {listing.address || "Address hidden"}
                           </span>
                         </div>
                       </TD>
@@ -311,23 +360,25 @@ export default function AdminMyListings() {
                         <div className="flex flex-col gap-1">
                           <Badge
                             variant={listing.isActive ? "success" : "outline"}
+                            className="w-fit"
                           >
                             {listing.isActive ? "Active" : "Inactive"}
                           </Badge>
                           {listing.offer && (
-                            <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs">
+                            <Badge className="w-fit bg-amber-100 text-amber-700">
                               Offer
                             </Badge>
                           )}
                         </div>
                       </TD>
-                      <TD className="font-medium">
+                      <TD className="text-sm font-semibold text-slate-900">
                         ${listing.regularPrice?.toLocaleString() || "—"}
                       </TD>
                       <TD>
                         <div className="flex justify-end gap-2">
                           <Button
                             size="sm"
+                            className="rounded-lg"
                             onClick={() => navigate(`/listing/${listing._id}`)}
                           >
                             View
@@ -335,6 +386,7 @@ export default function AdminMyListings() {
                           <Button
                             variant="success"
                             size="sm"
+                            className="rounded-lg"
                             onClick={() =>
                               navigate(`/update-listing/${listing._id}`)
                             }
@@ -344,6 +396,7 @@ export default function AdminMyListings() {
                           <Button
                             variant="destructive"
                             size="sm"
+                            className="rounded-lg"
                             onClick={() =>
                               setConfirm({ open: true, listing: listing })
                             }
@@ -361,35 +414,44 @@ export default function AdminMyListings() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <CardTitle className="text-lg">Account Snapshot</CardTitle>
-            <CardDescription>
-              Quick glance at your admin profile
-            </CardDescription>
-          </div>
+      <Card className="border-slate-200/70 shadow-md">
+        <CardHeader className="rounded-2xl bg-slate-50/70 px-6 py-5">
+          <CardTitle className="text-xl font-semibold text-slate-900">
+            Account Snapshot
+          </CardTitle>
+          <CardDescription className="text-sm text-slate-600">
+            Quick glance at your admin profile
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <CardContent className="px-6 py-6">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
-              <div className="h-14 w-14 rounded-full overflow-hidden bg-slate-100">
+              <div className="relative h-16 w-16 overflow-hidden rounded-full border border-slate-200 bg-slate-100 shadow-inner">
                 <img
                   src={currentUser?.avatar || DEFAULT_AVATAR}
                   alt={currentUser?.username}
                   className="h-full w-full object-cover"
                 />
+                <span className="absolute inset-0 rounded-full ring-8 ring-white/40" />
               </div>
-              <div>
-                <p className="font-semibold">{currentUser?.username}</p>
+              <div className="space-y-1">
+                <p className="text-base font-semibold text-slate-900">
+                  {currentUser?.username || "Admin"}
+                </p>
                 <p className="text-xs text-slate-500">{currentUser?.email}</p>
               </div>
             </div>
-            <div className="flex gap-2">
-              <Badge variant="outline" className="uppercase tracking-wide">
+            <div className="flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
+              <Badge
+                variant="outline"
+                className="rounded-full border-slate-200 bg-slate-50 px-3 py-1"
+              >
                 Listings: {listings.length}
               </Badge>
-              <Badge variant="outline" className="uppercase tracking-wide">
+              <Badge
+                variant="outline"
+                className="rounded-full border-slate-200 bg-slate-50 px-3 py-1"
+              >
                 Offers: {listings.filter((l) => l.offer).length}
               </Badge>
             </div>
