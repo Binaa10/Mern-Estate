@@ -10,9 +10,37 @@ import {
   CardContent,
 } from "../../components/ui/card";
 import { Dialog } from "../../components/ui/dialog";
-
 import { Input } from "../../components/ui/input";
-import { Select } from "../../components/ui/select";
+
+const statusTabs = [
+  { value: "all", label: "All" },
+  { value: "approved", label: "Active" },
+  { value: "pending", label: "Pending" },
+  { value: "deactivated", label: "Inactive" },
+];
+
+const statusMetaMap = {
+  approved: {
+    label: "Active",
+    variant: "success",
+  },
+  pending: {
+    label: "Pending",
+    variant: "warning",
+  },
+  deactivated: {
+    label: "Inactive",
+    variant: "outline",
+  },
+};
+
+const formatNumber = new Intl.NumberFormat();
+
+const getStatusMeta = (status) =>
+  statusMetaMap[status] || {
+    label: status,
+    variant: "outline",
+  };
 
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
@@ -20,11 +48,9 @@ export default function UserManagement() {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [adminFilter, setAdminFilter] = useState("all");
-  const [activationFilter, setActivationFilter] = useState("all");
-  const [approvalFilter, setApprovalFilter] = useState("all");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
@@ -35,7 +61,6 @@ export default function UserManagement() {
     title: "",
     description: "",
   });
-  // Enhanced profile dialog data
   const [userListings, setUserListings] = useState([]);
   const [listingsLoading, setListingsLoading] = useState(false);
   const [listingStats, setListingStats] = useState(null);
@@ -72,9 +97,9 @@ export default function UserManagement() {
           : 0;
       setSummary({
         total: getTotal(allData),
-        approved: getTotal(approvedData),
+        active: getTotal(approvedData),
         pending: getTotal(pendingData),
-        deactivated: getTotal(deactivatedData),
+        inactive: getTotal(deactivatedData),
       });
     } catch (err) {
       setSummary(null);
@@ -84,7 +109,7 @@ export default function UserManagement() {
     }
   }, []);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -92,12 +117,8 @@ export default function UserManagement() {
         page: page.toString(),
         limit: limit.toString(),
       });
-      if (search.trim()) params.set("search", search.trim());
+      if (searchQuery) params.set("search", searchQuery);
       if (statusFilter !== "all") params.set("status", statusFilter);
-      if (adminFilter !== "all") params.set("admin", adminFilter);
-      if (activationFilter !== "all")
-        params.set("activation", activationFilter);
-      if (approvalFilter !== "all") params.set("approval", approvalFilter);
       const res = await fetch(`/api/admin/users?${params.toString()}`);
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -111,25 +132,16 @@ export default function UserManagement() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, limit, statusFilter, searchQuery]);
 
   useEffect(() => {
     fetchUsers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    page,
-    limit,
-    statusFilter,
-    adminFilter,
-    activationFilter,
-    approvalFilter,
-  ]);
+  }, [fetchUsers]);
 
   useEffect(() => {
     fetchSummary();
   }, [fetchSummary]);
 
-  // Fetch selected user's listings when dialog opens
   useEffect(() => {
     const fetchUserListings = async () => {
       if (!selectedUser) return;
@@ -149,16 +161,15 @@ export default function UserManagement() {
         const data = await res.json();
         const items = data.items || [];
         setUserListings(items);
-        // Compute stats
         const total = data.total ?? items.length;
-        const active = items.filter((l) => l.isActive).length;
+        const active = items.filter((listing) => listing.isActive).length;
         const inactive = total - active;
-        const offers = items.filter((l) => l.offer).length;
-        const sale = items.filter((l) => l.type === "sale").length;
-        const rent = items.filter((l) => l.type === "rent").length;
+        const offers = items.filter((listing) => listing.offer).length;
+        const sale = items.filter((listing) => listing.type === "sale").length;
+        const rent = items.filter((listing) => listing.type === "rent").length;
         setListingStats({ total, active, inactive, offers, sale, rent });
-      } catch (e) {
-        setListingStats({ error: e.message });
+      } catch (err) {
+        setListingStats({ error: err.message });
       } finally {
         setListingsLoading(false);
       }
@@ -166,35 +177,40 @@ export default function UserManagement() {
     fetchUserListings();
   }, [selectedUser]);
 
-  const onSearchSubmit = (e) => {
-    e.preventDefault();
+  const onSearchSubmit = (event) => {
+    event.preventDefault();
     setPage(1);
-    fetchUsers();
+    setSearchQuery(searchInput.trim());
   };
 
   const openConfirm = (user, nextStatus) => {
-    const map = {
+    const copy = {
       approved: {
-        title: "Approve User",
-        description: `Approve account for ${user.username}? They will be able to sign in.`,
+        title: "Activate User",
+        description: `Activate ${user.username}'s account so they can access the platform immediately.`,
       },
       deactivated: {
         title: "Deactivate User",
-        description: `Deactivate ${user.username}? They will be prevented from signing in.`,
-      },
-      pending: {
-        title: "Mark Pending",
-        description: `Return ${user.username} to pending state?`,
+        description: `Deactivate ${user.username}'s account and prevent new sign-ins until it is activated again.`,
       },
     };
     setConfirm({
       open: true,
       user,
       nextStatus,
-      title: map[nextStatus].title,
-      description: map[nextStatus].description,
+      title: copy[nextStatus].title,
+      description: copy[nextStatus].description,
     });
   };
+
+  const closeConfirm = () =>
+    setConfirm({
+      open: false,
+      user: null,
+      nextStatus: null,
+      title: "",
+      description: "",
+    });
 
   const performStatusChange = async () => {
     if (!confirm.user) return;
@@ -209,347 +225,316 @@ export default function UserManagement() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.message || "Failed to update status");
       }
+      closeConfirm();
       await fetchUsers();
-      setConfirm({
-        open: false,
-        user: null,
-        nextStatus: null,
-        title: "",
-        description: "",
-      });
-    } catch (e) {
-      setError(e.message);
+      await fetchSummary();
+    } catch (err) {
+      setError(err.message);
     } finally {
       setActionLoading(false);
     }
   };
 
+  const selectedStatusMeta = selectedUser
+    ? getStatusMeta(selectedUser.status)
+    : null;
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          User Management
-        </h1>
-        <p className="text-sm text-slate-500">
-          Search and inspect user accounts
-        </p>
-      </div>
-      <div className="space-y-2">
-        {summaryError && (
-          <div className="text-sm text-red-700 bg-red-100 border border-red-200 rounded px-3 py-2">
-            {summaryError}
+    <>
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-[1px]">
+        <div className="absolute inset-0 translate-y-[-55%] bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.18),_transparent_60%)]" />
+        <div className="relative h-full w-full space-y-10 rounded-[calc(1.5rem-1px)] bg-gradient-to-br from-slate-50 via-white to-slate-100 p-6 sm:p-8 lg:p-10">
+          <div className="flex flex-col gap-2">
+            <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
+              User Management
+            </h1>
+            <p className="text-sm font-medium uppercase tracking-[0.35em] text-slate-400">
+              Search and manage platform accounts
+            </p>
+            {summaryError && (
+              <div className="mt-2 rounded-2xl border border-rose-200 bg-rose-50/80 px-4 py-3 text-sm font-medium text-rose-700 shadow-sm">
+                {summaryError}
+              </div>
+            )}
           </div>
-        )}
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {summaryLoading
-            ? Array.from({ length: 4 }).map((_, idx) => (
-                <div
-                  key={idx}
-                  className="rounded-xl border bg-white p-4 shadow-sm animate-pulse"
-                >
-                  <div className="h-4 w-28 bg-slate-200 rounded" />
-                  <div className="mt-3 h-8 w-12 bg-slate-200 rounded" />
-                  <div className="mt-4 h-6 w-24 bg-slate-200 rounded-full" />
-                </div>
-              ))
-            : [
-                {
-                  label: "Total Users",
-                  value: summary?.total ?? 0,
-                  helper: "Count of all users",
-                  helperClass: "bg-indigo-100 text-indigo-700",
-                },
-                {
-                  label: "Approved",
-                  value: summary?.approved ?? 0,
-                  helper: "Active accounts",
-                  helperClass: "bg-emerald-100 text-emerald-700",
-                },
-                {
-                  label: "Pending",
-                  value: summary?.pending ?? 0,
-                  helper: "Awaiting review",
-                  helperClass: "bg-amber-100 text-amber-700",
-                },
-                {
-                  label: "Deactivated",
-                  value: summary?.deactivated ?? 0,
-                  helper: "Suspended users",
-                  helperClass: "bg-rose-100 text-rose-700",
-                },
-              ].map((card) => (
-                <div
-                  key={card.label}
-                  className="rounded-xl border bg-white p-5 shadow-sm flex flex-col gap-3"
-                >
-                  <span className="text-sm font-medium text-slate-500">
-                    {card.label}
-                  </span>
-                  <span className="text-3xl font-semibold text-slate-900">
-                    {card.value}
-                  </span>
-                  <span
-                    className={`inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-medium ${card.helperClass}`}
+
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {summaryLoading
+              ? Array.from({ length: 4 }).map((_, index) => (
+                  <Card
+                    key={index}
+                    className="border-none bg-white/70 shadow-lg shadow-slate-200/60 animate-pulse"
                   >
-                    {card.helper}
-                  </span>
+                    <CardContent className="space-y-4 py-6">
+                      <div className="h-3 w-24 rounded-full bg-slate-200" />
+                      <div className="h-8 w-16 rounded-lg bg-slate-200" />
+                      <div className="h-5 w-28 rounded-full bg-slate-200" />
+                    </CardContent>
+                  </Card>
+                ))
+              : [
+                  {
+                    label: "Total Users",
+                    value: summary?.total ?? 0,
+                    note: "All accounts",
+                    accent:
+                      "from-indigo-500/20 to-indigo-100/40 text-indigo-600",
+                  },
+                  {
+                    label: "Active Users",
+                    value: summary?.active ?? 0,
+                    note: "Currently activated",
+                    accent:
+                      "from-emerald-500/20 to-emerald-100/40 text-emerald-600",
+                  },
+                  {
+                    label: "Pending Review",
+                    value: summary?.pending ?? 0,
+                    note: "Recently created",
+                    accent: "from-amber-500/20 to-amber-100/40 text-amber-600",
+                  },
+                  {
+                    label: "Inactive Users",
+                    value: summary?.inactive ?? 0,
+                    note: "Access disabled",
+                    accent: "from-rose-500/20 to-rose-100/40 text-rose-600",
+                  },
+                ].map((metric) => (
+                  <Card
+                    key={metric.label}
+                    className="relative overflow-hidden border-none bg-white/90 shadow-lg shadow-slate-200/70 transition hover:-translate-y-1 hover:shadow-xl"
+                  >
+                    <div
+                      className={`absolute inset-0 bg-gradient-to-br ${metric.accent} opacity-40`}
+                    />
+                    <div className="absolute inset-x-6 top-6 h-20 rounded-full bg-white/40 blur-2xl" />
+                    <CardHeader className="relative z-10 pb-2">
+                      <CardDescription className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">
+                        {metric.label}
+                      </CardDescription>
+                      <CardTitle className="mt-4 text-3xl font-bold text-slate-900">
+                        {formatNumber.format(metric.value)}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="relative z-10 pt-0">
+                      <span className="inline-flex items-center rounded-full bg-white/70 px-3 py-1 text-[11px] font-semibold text-slate-600">
+                        {metric.note}
+                      </span>
+                    </CardContent>
+                  </Card>
+                ))}
+          </div>
+
+          <Card className="border-none bg-white/90 shadow-xl shadow-slate-200/70">
+            <CardHeader className="flex flex-col gap-4 border-b border-slate-100/70 pb-6 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <CardTitle className="text-xl font-semibold text-slate-900">
+                  Users
+                </CardTitle>
+                <CardDescription className="text-sm text-slate-500">
+                  Displaying live user data from the database
+                </CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSearchInput("");
+                  setSearchQuery("");
+                  setStatusFilter("all");
+                  setPage(1);
+                }}
+                className="rounded-full border-slate-200 px-4 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-indigo-300 hover:text-indigo-600"
+              >
+                Reset Filters
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-6 pt-6">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex flex-wrap gap-2">
+                  {statusTabs.map((tab) => (
+                    <Button
+                      key={tab.value}
+                      type="button"
+                      variant={
+                        statusFilter === tab.value ? "default" : "outline"
+                      }
+                      size="sm"
+                      onClick={() => {
+                        setStatusFilter(tab.value);
+                        setPage(1);
+                      }}
+                      className={`rounded-full px-4 text-xs font-semibold transition ${
+                        statusFilter === tab.value
+                          ? "bg-slate-900 text-white hover:bg-slate-800"
+                          : "border-slate-200 text-slate-600 hover:border-indigo-300 hover:text-indigo-600"
+                      }`}
+                    >
+                      {tab.label}
+                    </Button>
+                  ))}
                 </div>
-              ))}
+                <form
+                  onSubmit={onSearchSubmit}
+                  className="flex w-full gap-2 lg:w-auto"
+                >
+                  <Input
+                    type="text"
+                    placeholder="Search username or email"
+                    value={searchInput}
+                    onChange={(event) => setSearchInput(event.target.value)}
+                    className="rounded-2xl border-slate-200 bg-white/80"
+                  />
+                  <Button
+                    type="submit"
+                    variant="default"
+                    className="rounded-2xl bg-slate-900 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+                  >
+                    Search
+                  </Button>
+                </form>
+              </div>
+
+              {error && (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50/80 px-4 py-3 text-sm font-medium text-rose-700 shadow-sm">
+                  {error}
+                </div>
+              )}
+
+              {loading ? (
+                <div className="py-12 text-center text-sm font-medium text-slate-500">
+                  Loading users...
+                </div>
+              ) : (
+                <div className="overflow-hidden rounded-3xl border border-slate-100 shadow-inner shadow-slate-200/60">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <THead>
+                        <TR className="bg-slate-50/80 text-xs uppercase tracking-wide text-slate-500">
+                          <TH className="py-4">Username</TH>
+                          <TH>Email</TH>
+                          <TH>Status</TH>
+                          <TH>Role</TH>
+                          <TH className="text-right">Actions</TH>
+                        </TR>
+                      </THead>
+                      <TBody>
+                        {users.length === 0 && (
+                          <TR>
+                            <TD
+                              colSpan={5}
+                              className="py-10 text-center text-sm font-medium text-slate-500"
+                            >
+                              No users found.
+                            </TD>
+                          </TR>
+                        )}
+                        {users.map((user) => {
+                          const statusMeta = getStatusMeta(user.status);
+                          return (
+                            <TR
+                              key={user._id}
+                              className="border-t border-slate-100/80"
+                            >
+                              <TD className="py-4 font-medium text-slate-800">
+                                {user.username}
+                              </TD>
+                              <TD className="text-sm text-slate-500">
+                                {user.email}
+                              </TD>
+                              <TD>
+                                <Badge variant={statusMeta.variant}>
+                                  {statusMeta.label}
+                                </Badge>
+                              </TD>
+                              <TD>
+                                <Badge
+                                  variant={user.isAdmin ? "success" : "outline"}
+                                >
+                                  {user.isAdmin ? "Admin" : "Member"}
+                                </Badge>
+                              </TD>
+                              <TD>
+                                <div className="flex justify-end gap-2">
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    onClick={() => setSelectedUser(user)}
+                                    className="rounded-full px-4 text-xs font-semibold"
+                                  >
+                                    View
+                                  </Button>
+                                  {user.status !== "approved" && (
+                                    <Button
+                                      size="sm"
+                                      variant="default"
+                                      className="rounded-full bg-emerald-500 px-4 text-xs font-semibold text-white transition hover:bg-emerald-600"
+                                      onClick={() =>
+                                        openConfirm(user, "approved")
+                                      }
+                                    >
+                                      Activate
+                                    </Button>
+                                  )}
+                                  {user.status !== "deactivated" && (
+                                    <Button
+                                      size="sm"
+                                      variant="default"
+                                      className="rounded-full bg-rose-500 px-4 text-xs font-semibold text-white transition hover:bg-rose-600"
+                                      onClick={() =>
+                                        openConfirm(user, "deactivated")
+                                      }
+                                    >
+                                      Deactivate
+                                    </Button>
+                                  )}
+                                </div>
+                              </TD>
+                            </TR>
+                          );
+                        })}
+                      </TBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center justify-between gap-4 text-sm text-slate-600">
+                <span>
+                  Page {page} of {totalPages}
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    disabled={page === 1}
+                    onClick={() => setPage((prev) => prev - 1)}
+                    className="rounded-full border-slate-200 px-4 text-xs font-semibold"
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    disabled={page === totalPages}
+                    onClick={() => setPage((prev) => prev + 1)}
+                    className="rounded-full border-slate-200 px-4 text-xs font-semibold"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg">Users</CardTitle>
-          <CardDescription>Showing real users from database</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-3 mb-4">
-            <div className="flex flex-wrap gap-2">
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300 mr-2 self-center">
-                Status:
-              </span>
-              {["all", "approved", "pending", "deactivated"].map((s) => (
-                <Button
-                  key={s}
-                  type="button"
-                  variant={statusFilter === s ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => {
-                    setStatusFilter(s);
-                    setPage(1);
-                  }}
-                >
-                  {s.charAt(0).toUpperCase() + s.slice(1)}
-                </Button>
-              ))}
-            </div>
-            <form
-              onSubmit={onSearchSubmit}
-              className="flex flex-col sm:flex-row gap-2"
-            >
-              <Input
-                type="text"
-                placeholder="Search username or email"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="flex-1"
-              />
-              <Button type="submit" variant="outline">
-                Search
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => {
-                  setSearch("");
-                  setStatusFilter("all");
-                  setAdminFilter("all");
-                  setActivationFilter("all");
-                  setApprovalFilter("all");
-                  setPage(1);
-                  fetchUsers();
-                }}
-              >
-                Reset
-              </Button>
-            </form>
-            <div className="flex flex-wrap gap-2 items-center">
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300 mr-2">
-                Roles:
-              </span>
-              <Select
-                value={adminFilter}
-                onChange={(e) => {
-                  setAdminFilter(e.target.value);
-                  setPage(1);
-                }}
-                className="w-32"
-              >
-                <option value="all">All</option>
-                <option value="admin">Admin</option>
-                <option value="user">Staff</option>
-              </Select>
-            </div>
-            <div className="flex flex-wrap gap-4 items-center">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Activation:
-                </span>
-                <Select
-                  value={activationFilter}
-                  onChange={(e) => {
-                    setActivationFilter(e.target.value);
-                    setPage(1);
-                  }}
-                  className="w-28"
-                >
-                  <option value="all">All</option>
-                  <option value="activated">Activated</option>
-                  <option value="deactivated">Deactivated</option>
-                </Select>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Approval:
-                </span>
-                <Select
-                  value={approvalFilter}
-                  onChange={(e) => {
-                    setApprovalFilter(e.target.value);
-                    setPage(1);
-                  }}
-                  className="w-24"
-                >
-                  <option value="all">All</option>
-                  <option value="approved">Approved</option>
-                  <option value="pending">Pending</option>
-                </Select>
-              </div>
-            </div>
-          </div>
-          {error && (
-            <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2">
-              {error}
-            </div>
-          )}
-          {loading ? (
-            <div className="py-10 text-center text-sm text-slate-500">
-              Loading users...
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <THead>
-                  <TR>
-                    <TH>Username</TH>
-                    <TH>Email</TH>
-                    <TH>Status</TH>
-                    <TH>Roles</TH>
-                    <TH className="text-right">Actions</TH>
-                  </TR>
-                </THead>
-                <TBody>
-                  {users.length === 0 && (
-                    <TR>
-                      <TD
-                        colSpan={4}
-                        className="text-center text-sm py-8 text-slate-500"
-                      >
-                        No users found
-                      </TD>
-                    </TR>
-                  )}
-                  {users.map((u) => (
-                    <TR key={u._id}>
-                      <TD className="font-medium">{u.username}</TD>
-                      <TD>{u.email}</TD>
-                      <TD>
-                        <Badge
-                          variant={
-                            u.status === "approved"
-                              ? "success"
-                              : u.status === "pending"
-                              ? "warning"
-                              : "outline"
-                          }
-                        >
-                          {u.status}
-                        </Badge>
-                      </TD>
-                      <TD>
-                        <Badge variant={u.isAdmin ? "success" : "outline"}>
-                          {u.isAdmin ? "Admin" : "User"}
-                        </Badge>
-                      </TD>
-                      <TD>
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="default"
-                            size="sm"
-                            onClick={() => setSelectedUser(u)}
-                          >
-                            View
-                          </Button>
-                          {u.status === "pending" && (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="default"
-                                className="!bg-green-600 hover:!bg-green-700 text-white"
-                                onClick={() => openConfirm(u, "approved")}
-                              >
-                                Approve
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="default"
-                                className="!bg-red-600 hover:!bg-red-700 text-white"
-                                onClick={() => openConfirm(u, "deactivated")}
-                              >
-                                Reject
-                              </Button>
-                            </>
-                          )}
-                          {u.status === "approved" && (
-                            <Button
-                              size="sm"
-                              variant="default"
-                              className="!bg-red-600 hover:!bg-red-700 text-white"
-                              onClick={() => openConfirm(u, "deactivated")}
-                            >
-                              Deactivate
-                            </Button>
-                          )}
-                          {u.status === "deactivated" && (
-                            <Button
-                              size="sm"
-                              variant="default"
-                              className="!bg-green-500 hover:!bg-green-600 text-white"
-                              onClick={() => openConfirm(u, "approved")}
-                            >
-                              Re-Approve
-                            </Button>
-                          )}
-                        </div>
-                      </TD>
-                    </TR>
-                  ))}
-                </TBody>
-              </Table>
-            </div>
-          )}
-          <div className="flex justify-between items-center mt-4 text-sm">
-            <span>
-              Page {page} of {totalPages}
-            </span>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                disabled={page === 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                Prev
-              </Button>
-              <Button
-                variant="outline"
-                disabled={page === totalPages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       <Dialog
         open={!!selectedUser}
-        onOpenChange={(o) => !o && setSelectedUser(null)}
+        onOpenChange={(open) => !open && setSelectedUser(null)}
         title="User Profile"
         footer={
-          <div className="w-full flex justify-between items-center">
-            <div className="text-xs text-slate-400">
-              ID: {selectedUser?._id?.slice(0, 8)}… (click to copy)
+          <div className="flex w-full items-center justify-between">
+            <div className="text-xs font-medium text-slate-400">
+              ID: {selectedUser?._id?.slice(0, 8)}…
             </div>
             <Button variant="outline" onClick={() => setSelectedUser(null)}>
               Close
@@ -557,37 +542,28 @@ export default function UserManagement() {
           </div>
         }
       >
-        {selectedUser && (
+        {selectedUser && selectedStatusMeta && (
           <div className="space-y-6 text-sm">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
               <div className="flex items-center gap-4">
-                <div className="h-20 w-20 rounded-full overflow-hidden ring-2 ring-slate-200 bg-slate-100 flex-shrink-0">
+                <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-full bg-slate-100 ring-2 ring-slate-200">
                   <img
                     src={selectedUser.avatar}
                     alt={selectedUser.username}
                     className="h-full w-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src =
+                    onError={(event) => {
+                      event.currentTarget.src =
                         "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
                     }}
                   />
                 </div>
                 <div className="space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="text-lg font-semibold tracking-tight">
+                    <h2 className="text-lg font-semibold tracking-tight text-slate-900">
                       {selectedUser.username}
                     </h2>
-                    <Badge
-                      variant={
-                        selectedUser.status === "approved"
-                          ? "success"
-                          : selectedUser.status === "pending"
-                          ? "warning"
-                          : "outline"
-                      }
-                    >
-                      {selectedUser.status}
+                    <Badge variant={selectedStatusMeta.variant}>
+                      {selectedStatusMeta.label}
                     </Badge>
                     {selectedUser.isAdmin && (
                       <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200">
@@ -595,7 +571,7 @@ export default function UserManagement() {
                       </Badge>
                     )}
                   </div>
-                  <div className="text-xs text-slate-500 flex flex-wrap gap-4">
+                  <div className="flex flex-wrap gap-4 text-xs text-slate-500">
                     <span>
                       Created:{" "}
                       {new Date(selectedUser.createdAt).toLocaleString()}
@@ -611,7 +587,6 @@ export default function UserManagement() {
               </div>
             </div>
 
-            {/* Contact */}
             <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
               <div className="space-y-1">
                 <p className="text-xs uppercase tracking-wide text-slate-500">
@@ -626,7 +601,7 @@ export default function UserManagement() {
                     onClick={() =>
                       navigator.clipboard.writeText(selectedUser.email)
                     }
-                    className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 hover:bg-slate-300 text-slate-700"
+                    className="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold text-slate-700 transition hover:bg-slate-300"
                   >
                     Copy
                   </button>
@@ -645,7 +620,7 @@ export default function UserManagement() {
                     onClick={() =>
                       navigator.clipboard.writeText(selectedUser._id)
                     }
-                    className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 hover:bg-slate-300 text-slate-700"
+                    className="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold text-slate-700 transition hover:bg-slate-300"
                   >
                     Copy
                   </button>
@@ -653,7 +628,6 @@ export default function UserManagement() {
               </div>
             </div>
 
-            {/* Listing Stats */}
             <div className="space-y-3">
               <p className="text-xs uppercase tracking-wide text-slate-500">
                 Listing Summary
@@ -661,61 +635,40 @@ export default function UserManagement() {
               {listingsLoading ? (
                 <div className="text-xs text-slate-500">Loading listings…</div>
               ) : listingStats?.error ? (
-                <div className="text-xs text-red-600">{listingStats.error}</div>
+                <div className="text-xs text-rose-600">
+                  {listingStats.error}
+                </div>
               ) : (
-                <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-6">
-                  <div className="p-2 rounded border bg-white">
-                    <p className="text-[10px] uppercase text-slate-500">
-                      Total
-                    </p>
-                    <p className="text-sm font-semibold">
-                      {listingStats?.total ?? 0}
-                    </p>
-                  </div>
-                  <div className="p-2 rounded border bg-white">
-                    <p className="text-[10px] uppercase text-slate-500">
-                      Active
-                    </p>
-                    <p className="text-sm font-semibold">
-                      {listingStats?.active ?? 0}
-                    </p>
-                  </div>
-                  <div className="p-2 rounded border bg-white">
-                    <p className="text-[10px] uppercase text-slate-500">
-                      Inactive
-                    </p>
-                    <p className="text-sm font-semibold">
-                      {listingStats?.inactive ?? 0}
-                    </p>
-                  </div>
-                  <div className="p-2 rounded border bg-white">
-                    <p className="text-[10px] uppercase text-slate-500">
-                      Offers
-                    </p>
-                    <p className="text-sm font-semibold">
-                      {listingStats?.offers ?? 0}
-                    </p>
-                  </div>
-                  <div className="p-2 rounded border bg-white">
-                    <p className="text-[10px] uppercase text-slate-500">Sale</p>
-                    <p className="text-sm font-semibold">
-                      {listingStats?.sale ?? 0}
-                    </p>
-                  </div>
-                  <div className="p-2 rounded border bg-white">
-                    <p className="text-[10px] uppercase text-slate-500">Rent</p>
-                    <p className="text-sm font-semibold">
-                      {listingStats?.rent ?? 0}
-                    </p>
-                  </div>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
+                  {[
+                    "total",
+                    "active",
+                    "inactive",
+                    "offers",
+                    "sale",
+                    "rent",
+                  ].map((key) => (
+                    <div
+                      key={key}
+                      className="rounded-lg border border-slate-100 bg-white/90 p-2"
+                    >
+                      <p className="text-[10px] uppercase tracking-wide text-slate-500">
+                        {key === "total"
+                          ? "Total"
+                          : key.charAt(0).toUpperCase() + key.slice(1)}
+                      </p>
+                      <p className="text-sm font-semibold text-slate-900">
+                        {listingStats?.[key] ?? 0}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               )}
               <p className="text-[10px] text-slate-400">
-                Counts limited to first 100 listings for performance.
+                Counts limited to the first 100 listings for performance.
               </p>
             </div>
 
-            {/* Recent Listings */}
             <div className="space-y-2">
               <p className="text-xs uppercase tracking-wide text-slate-500">
                 Recent Listings
@@ -727,45 +680,52 @@ export default function UserManagement() {
                   No listings created by this user.
                 </div>
               ) : (
-                <div className="border rounded overflow-hidden">
+                <div className="overflow-hidden rounded-lg border border-slate-100">
                   <table className="w-full text-xs">
                     <thead className="bg-slate-50 text-slate-600">
                       <tr>
-                        <th className="text-left font-medium px-2 py-1">
+                        <th className="px-2 py-1 text-left font-semibold">
                           Name
                         </th>
-                        <th className="text-left font-medium px-2 py-1">
+                        <th className="px-2 py-1 text-left font-semibold">
                           Type
                         </th>
-                        <th className="text-left font-medium px-2 py-1">
+                        <th className="px-2 py-1 text-left font-semibold">
                           Active
                         </th>
-                        <th className="text-left font-medium px-2 py-1">
+                        <th className="px-2 py-1 text-left font-semibold">
                           Created
                         </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {userListings.slice(0, 5).map((l) => (
-                        <tr key={l._id} className="border-t">
-                          <td className="px-2 py-1 font-medium truncate max-w-[140px]">
-                            {l.name}
+                      {userListings.slice(0, 5).map((listing) => (
+                        <tr
+                          key={listing._id}
+                          className="border-t border-slate-100"
+                        >
+                          <td className="max-w-[140px] truncate px-2 py-1 font-medium text-slate-800">
+                            {listing.name}
                           </td>
-                          <td className="px-2 py-1 capitalize">{l.type}</td>
+                          <td className="px-2 py-1 capitalize text-slate-600">
+                            {listing.type}
+                          </td>
                           <td className="px-2 py-1">
-                            <Badge variant={l.isActive ? "success" : "outline"}>
-                              {l.isActive ? "Yes" : "No"}
+                            <Badge
+                              variant={listing.isActive ? "success" : "outline"}
+                            >
+                              {listing.isActive ? "Yes" : "No"}
                             </Badge>
                           </td>
-                          <td className="px-2 py-1">
-                            {new Date(l.createdAt).toLocaleDateString()}
+                          <td className="px-2 py-1 text-slate-500">
+                            {new Date(listing.createdAt).toLocaleDateString()}
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                   {userListings.length > 5 && (
-                    <div className="text-[10px] px-2 py-1 text-slate-500 bg-slate-50 border-t">
+                    <div className="bg-slate-50 px-2 py-1 text-[10px] text-slate-500">
                       + {userListings.length - 5} more (showing 5)
                     </div>
                   )}
@@ -779,34 +739,18 @@ export default function UserManagement() {
           </div>
         )}
       </Dialog>
+
       {confirm.open && (
         <Dialog
           open={confirm.open}
-          onOpenChange={(o) =>
-            !o &&
-            setConfirm({
-              open: false,
-              user: null,
-              nextStatus: null,
-              title: "",
-              description: "",
-            })
-          }
+          onOpenChange={(open) => !open && closeConfirm()}
           title={confirm.title}
           footer={
             <>
               <Button
                 variant="outline"
                 disabled={actionLoading}
-                onClick={() =>
-                  setConfirm({
-                    open: false,
-                    user: null,
-                    nextStatus: null,
-                    title: "",
-                    description: "",
-                  })
-                }
+                onClick={closeConfirm}
               >
                 Cancel
               </Button>
@@ -823,6 +767,6 @@ export default function UserManagement() {
           <p className="text-sm text-slate-600">{confirm.description}</p>
         </Dialog>
       )}
-    </div>
+    </>
   );
 }
