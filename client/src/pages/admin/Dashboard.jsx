@@ -28,7 +28,7 @@ const quickLinks = [
   {
     label: "Users",
     to: "/admin/users",
-    desc: "Manage accounts: approve, deactivate, inspect profiles.",
+    desc: "Manage accounts: deactivate or inspect profiles.",
     icon: HiOutlineUsers,
   },
   {
@@ -54,11 +54,6 @@ export default function AdminDashboard() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [pendingCount, setPendingCount] = useState(null);
-  const [pendingUsers, setPendingUsers] = useState([]);
-  const [pendingOpen, setPendingOpen] = useState(false);
-  const [pendingLoading, setPendingLoading] = useState(false);
-  const [pendingError, setPendingError] = useState(null);
   const [recentListings, setRecentListings] = useState([]);
   const [recentLoading, setRecentLoading] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState(null);
@@ -195,22 +190,6 @@ export default function AdminDashboard() {
     };
 
     fetchMetrics();
-
-    const fetchPendingCount = async () => {
-      try {
-        const res = await fetch(
-          "/api/admin/users?status=pending&limit=1&page=1"
-        );
-        if (!res.ok) return;
-        const data = await res.json();
-        setPendingCount(data.total ?? 0);
-      } catch {
-        setPendingCount(0);
-      }
-    };
-
-    fetchPendingCount();
-
     const fetchRecent = async () => {
       try {
         setRecentLoading(true);
@@ -227,27 +206,6 @@ export default function AdminDashboard() {
 
     fetchRecent();
   }, []);
-
-  const openPending = async () => {
-    setPendingOpen(true);
-    setPendingLoading(true);
-    setPendingError(null);
-    try {
-      const res = await fetch(
-        "/api/admin/users?status=pending&limit=50&page=1&sort=createdAt&order=desc"
-      );
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.message || "Failed to load pending users");
-      }
-      const data = await res.json();
-      setPendingUsers(data.items || []);
-    } catch (e) {
-      setPendingError(e.message);
-    } finally {
-      setPendingLoading(false);
-    }
-  };
 
   const summary = [
     {
@@ -271,15 +229,6 @@ export default function AdminDashboard() {
       note: "Since midnight",
       icon: HiOutlineChartBar,
     },
-    {
-      label: "Pending Approvals",
-      value:
-        pendingCount === null ? "…" : pendingCount === 0 ? "0" : pendingCount,
-      accent: "bg-rose-100/80 text-rose-700",
-      note: "Users awaiting review",
-      icon: HiOutlineUser,
-      action: openPending,
-    },
   ];
 
   return (
@@ -301,17 +250,13 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {summary.map((s) => {
             const Icon = s.icon;
             return (
               <Card
                 key={s.label}
-                className={`group relative overflow-hidden border-none bg-white/80 shadow-lg shadow-emerald-100/40 transition hover:-translate-y-1 hover:shadow-xl ${
-                  s.label === "Pending Approvals" && (pendingCount || 0) > 0
-                    ? "ring-1 ring-rose-200 bg-rose-50/80"
-                    : ""
-                }`}
+                className="group relative overflow-hidden border-none bg-white/80 shadow-lg shadow-emerald-100/40 transition hover:-translate-y-1 hover:shadow-xl"
                 onClick={() => s.action?.()}
               >
                 <div className="absolute inset-x-6 top-6 h-24 rounded-full bg-gradient-to-br from-emerald-100/60 via-white to-transparent blur-2xl" />
@@ -338,11 +283,6 @@ export default function AdminDashboard() {
                   >
                     {s.note}
                   </span>
-                  {s.label === "Pending Approvals" && pendingCount > 0 && (
-                    <div className="mt-2 text-[11px] font-medium text-rose-600">
-                      Click to review
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             );
@@ -453,87 +393,6 @@ export default function AdminDashboard() {
             )}
           </CardContent>
         </Card>
-
-        {pendingOpen && (
-          <Card className="border-rose-200/70 bg-white/90 shadow-xl shadow-rose-100/60">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-base font-semibold text-slate-900">
-                    Pending Users
-                  </CardTitle>
-                  <CardDescription className="text-sm text-slate-500">
-                    Accounts awaiting approval ({pendingCount ?? 0})
-                  </CardDescription>
-                </div>
-                <Button
-                  size="sm"
-                  variant="default"
-                  onClick={() => setPendingOpen(false)}
-                  className="rounded-full px-4 text-xs font-semibold"
-                >
-                  Close
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              {pendingLoading ? (
-                <div className="py-4 text-sm font-medium text-slate-500">
-                  Loading…
-                </div>
-              ) : pendingError ? (
-                <div className="py-3 text-sm font-semibold text-rose-600">
-                  {pendingError}
-                </div>
-              ) : pendingUsers.length === 0 ? (
-                <div className="py-4 text-sm font-medium text-slate-500">
-                  No pending users.
-                </div>
-              ) : (
-                <div className="overflow-hidden rounded-2xl border border-rose-100 bg-white">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
-                      <thead className="bg-rose-50 text-rose-700">
-                        <tr>
-                          <th className="px-3 py-2 text-left font-semibold uppercase tracking-wide">
-                            User
-                          </th>
-                          <th className="px-3 py-2 text-left font-semibold uppercase tracking-wide">
-                            Email
-                          </th>
-                          <th className="px-3 py-2 text-left font-semibold uppercase tracking-wide">
-                            Created
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {pendingUsers.map((u) => (
-                          <tr
-                            key={u._id}
-                            className="border-t border-rose-100/70 text-slate-600"
-                          >
-                            <td className="px-3 py-2 font-medium text-slate-700">
-                              {u.username}
-                            </td>
-                            <td className="px-3 py-2">{u.email}</td>
-                            <td className="px-3 py-2">
-                              {new Date(u.createdAt).toLocaleDateString()}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  {pendingUsers.length >= 50 && (
-                    <div className="bg-rose-50 px-3 py-1 text-[10px] font-medium text-rose-600">
-                      Showing first 50
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
 
         <Card className="border-none bg-transparent shadow-none">
           <CardHeader className="px-0">

@@ -15,7 +15,6 @@ import { Input } from "../../components/ui/input";
 const statusTabs = [
   { value: "all", label: "All" },
   { value: "approved", label: "Active" },
-  { value: "pending", label: "Pending" },
   { value: "deactivated", label: "Inactive" },
 ];
 
@@ -23,10 +22,6 @@ const statusMetaMap = {
   approved: {
     label: "Active",
     variant: "success",
-  },
-  pending: {
-    label: "Pending",
-    variant: "warning",
   },
   deactivated: {
     label: "Inactive",
@@ -41,6 +36,9 @@ const getStatusMeta = (status) =>
     label: status,
     variant: "outline",
   };
+
+const normalizeStatus = (status) =>
+  status === "pending" ? "approved" : status;
 
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
@@ -72,34 +70,19 @@ export default function UserManagement() {
     try {
       setSummaryLoading(true);
       setSummaryError(null);
-      const endpoints = [
-        "/api/admin/users?page=1&limit=1",
-        "/api/admin/users?status=approved&page=1&limit=1",
-        "/api/admin/users?status=pending&page=1&limit=1",
-        "/api/admin/users?status=deactivated&page=1&limit=1",
-      ];
-      const responses = await Promise.all(endpoints.map((url) => fetch(url)));
-      const datasets = await Promise.all(
-        responses.map(async (res) => {
-          if (!res.ok) {
-            const data = await res.json().catch(() => ({}));
-            throw new Error(data.message || "Failed to load summary");
-          }
-          return res.json();
-        })
-      );
-      const [allData, approvedData, pendingData, deactivatedData] = datasets;
-      const getTotal = (data) =>
-        typeof data?.total === "number"
-          ? data.total
-          : Array.isArray(data?.items)
-          ? data.items.length
-          : 0;
+      const res = await fetch("/api/admin/users/summary", {
+        credentials: "include",
+        headers: { Accept: "application/json" },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || "Failed to load summary");
+      }
+      const data = await res.json();
       setSummary({
-        total: getTotal(allData),
-        active: getTotal(approvedData),
-        pending: getTotal(pendingData),
-        inactive: getTotal(deactivatedData),
+        total: Number.isFinite(data?.total) ? data.total : 0,
+        active: Number.isFinite(data?.active) ? data.active : 0,
+        inactive: Number.isFinite(data?.inactive) ? data.inactive : 0,
       });
     } catch (err) {
       setSummary(null);
@@ -236,7 +219,7 @@ export default function UserManagement() {
   };
 
   const selectedStatusMeta = selectedUser
-    ? getStatusMeta(selectedUser.status)
+    ? getStatusMeta(normalizeStatus(selectedUser.status))
     : null;
 
   return (
@@ -258,9 +241,9 @@ export default function UserManagement() {
             )}
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {summaryLoading
-              ? Array.from({ length: 4 }).map((_, index) => (
+              ? Array.from({ length: 3 }).map((_, index) => (
                   <Card
                     key={index}
                     className="border-none bg-white/70 shadow-lg shadow-slate-200/60 animate-pulse"
@@ -286,12 +269,6 @@ export default function UserManagement() {
                     note: "Currently activated",
                     accent:
                       "from-emerald-500/20 to-emerald-100/40 text-emerald-600",
-                  },
-                  {
-                    label: "Pending Review",
-                    value: summary?.pending ?? 0,
-                    note: "Recently created",
-                    accent: "from-amber-500/20 to-amber-100/40 text-amber-600",
                   },
                   {
                     label: "Inactive Users",
@@ -430,7 +407,8 @@ export default function UserManagement() {
                           </TR>
                         )}
                         {users.map((user) => {
-                          const statusMeta = getStatusMeta(user.status);
+                          const effectiveStatus = normalizeStatus(user.status);
+                          const statusMeta = getStatusMeta(effectiveStatus);
                           return (
                             <TR
                               key={user._id}
@@ -462,13 +440,13 @@ export default function UserManagement() {
                                     onClick={() => setSelectedUser(user)}
                                     className="rounded-full px-4 text-xs font-semibold"
                                   >
-                                    View
+                                    View Profile
                                   </Button>
-                                  {user.status !== "approved" && (
+                                  {effectiveStatus !== "approved" && (
                                     <Button
                                       size="sm"
-                                      variant="default"
-                                      className="rounded-full bg-emerald-500 px-4 text-xs font-semibold text-white transition hover:bg-emerald-600"
+                                      variant="success"
+                                      className="rounded-full px-4 text-xs font-semibold"
                                       onClick={() =>
                                         openConfirm(user, "approved")
                                       }
@@ -476,11 +454,11 @@ export default function UserManagement() {
                                       Activate
                                     </Button>
                                   )}
-                                  {user.status !== "deactivated" && (
+                                  {effectiveStatus === "approved" && (
                                     <Button
                                       size="sm"
-                                      variant="default"
-                                      className="rounded-full bg-rose-500 px-4 text-xs font-semibold text-white transition hover:bg-rose-600"
+                                      variant="destructive"
+                                      className="rounded-full px-4 text-xs font-semibold"
                                       onClick={() =>
                                         openConfirm(user, "deactivated")
                                       }
@@ -543,157 +521,247 @@ export default function UserManagement() {
         }
       >
         {selectedUser && selectedStatusMeta && (
-          <div className="space-y-6 text-sm">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-              <div className="flex items-center gap-4">
-                <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-full bg-slate-100 ring-2 ring-slate-200">
-                  <img
-                    src={selectedUser.avatar}
-                    alt={selectedUser.username}
-                    className="h-full w-full object-cover"
-                    onError={(event) => {
-                      event.currentTarget.src =
-                        "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
-                    }}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="text-lg font-semibold tracking-tight text-slate-900">
-                      {selectedUser.username}
-                    </h2>
-                    <Badge variant={selectedStatusMeta.variant}>
-                      {selectedStatusMeta.label}
-                    </Badge>
-                    {selectedUser.isAdmin && (
-                      <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200">
-                        Admin
+          <div className="space-y-8 text-sm text-slate-600">
+            <section className="relative overflow-hidden rounded-3xl border border-slate-100 bg-gradient-to-br from-white via-slate-50 to-slate-100/80 p-6 shadow-lg shadow-slate-200/70">
+              <div className="absolute -top-24 right-0 h-56 w-56 rounded-full bg-indigo-200/20 blur-3xl" />
+              <div className="absolute -bottom-32 left-6 h-64 w-64 rounded-full bg-emerald-200/20 blur-3xl" />
+              <div className="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-5">
+                  <div className="relative flex h-24 w-24 items-center justify-center">
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-indigo-400/40 to-indigo-200/20 blur-xl" />
+                    <div className="relative h-24 w-24 overflow-hidden rounded-full border-[3px] border-white shadow-lg shadow-slate-300/60 ring-4 ring-white/70">
+                      <img
+                        src={
+                          selectedUser.avatar ||
+                          "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"
+                        }
+                        alt={selectedUser.username}
+                        className="h-full w-full object-cover"
+                        onError={(event) => {
+                          event.currentTarget.src =
+                            "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
+                        {selectedUser.username}
+                      </h2>
+                      <Badge variant={selectedStatusMeta.variant}>
+                        {selectedStatusMeta.label}
                       </Badge>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap gap-4 text-xs text-slate-500">
-                    <span>
-                      Created:{" "}
-                      {new Date(selectedUser.createdAt).toLocaleString()}
-                    </span>
-                    {selectedUser.updatedAt && (
+                      {selectedUser.isAdmin && (
+                        <Badge className="border-indigo-200 bg-indigo-100 text-indigo-700">
+                          Admin
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-4 text-xs text-slate-500">
                       <span>
-                        Updated:{" "}
-                        {new Date(selectedUser.updatedAt).toLocaleString()}
+                        Created:{" "}
+                        {new Date(selectedUser.createdAt).toLocaleString()}
                       </span>
-                    )}
+                      {selectedUser.updatedAt && (
+                        <span>
+                          Updated:{" "}
+                          {new Date(selectedUser.updatedAt).toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid w-full gap-4 text-xs md:w-auto md:grid-cols-2">
+                  <div className="flex flex-col gap-1 rounded-2xl border border-white/70 bg-white/80 p-4 shadow-sm">
+                    <p className="font-semibold text-slate-400">Membership</p>
+                    <div className="flex items-center gap-2 text-slate-800">
+                      <span className="text-sm font-semibold capitalize">
+                        {selectedUser.isAdmin ? "Administrator" : "Member"}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      Assigned automatically based on account privileges.
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-1 rounded-2xl border border-white/70 bg-white/80 p-4 shadow-sm">
+                    <p className="font-semibold text-slate-400">Status</p>
+                    <div className="flex items-center gap-2 text-slate-800">
+                      <Badge variant={selectedStatusMeta.variant}>
+                        {selectedStatusMeta.label}
+                      </Badge>
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      Users with inactive status can’t sign in until reenabled.
+                    </p>
                   </div>
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-              <div className="space-y-1">
-                <p className="text-xs uppercase tracking-wide text-slate-500">
-                  Email
-                </p>
-                <div className="flex items-center gap-2">
-                  <p className="font-mono text-xs break-all">
-                    {selectedUser.email}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      navigator.clipboard.writeText(selectedUser.email)
-                    }
-                    className="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold text-slate-700 transition hover:bg-slate-300"
-                  >
-                    Copy
-                  </button>
+            <section className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-3xl border border-slate-100 bg-white/90 p-5 shadow-sm shadow-slate-200/60">
+                <h3 className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+                  Contact
+                </h3>
+                <div className="mt-4 space-y-3 text-xs">
+                  <div className="flex flex-col gap-1">
+                    <span className="font-medium text-slate-500">Email</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-sm text-slate-800 break-all">
+                        {selectedUser.email}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          navigator.clipboard.writeText(selectedUser.email)
+                        }
+                        className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-600 transition hover:border-indigo-200 hover:text-indigo-600"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="font-medium text-slate-500">ID</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-[11px] text-slate-700 break-all">
+                        {selectedUser._id}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          navigator.clipboard.writeText(selectedUser._id)
+                        }
+                        className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-600 transition hover:border-indigo-200 hover:text-indigo-600"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="space-y-1">
-                <p className="text-xs uppercase tracking-wide text-slate-500">
-                  User ID
-                </p>
-                <div className="flex items-center gap-2">
-                  <p className="font-mono text-[10px] break-all">
-                    {selectedUser._id}
+
+              <div className="rounded-3xl border border-slate-100 bg-white/90 p-5 shadow-sm shadow-slate-200/60">
+                <h3 className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+                  Account Insights
+                </h3>
+                <div className="mt-4 grid gap-3 text-xs text-slate-600">
+                  <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-3 py-2">
+                    <span className="font-medium text-slate-500">
+                      Email Verified
+                    </span>
+                    <Badge
+                      variant={
+                        selectedUser.emailVerified ? "success" : "outline"
+                      }
+                    >
+                      {selectedUser.emailVerified ? "Yes" : "Pending"}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-3 py-2">
+                    <span className="font-medium text-slate-500">
+                      Two-factor
+                    </span>
+                    <Badge
+                      variant={
+                        selectedUser.twoFactorEnabled ? "success" : "outline"
+                      }
+                    >
+                      {selectedUser.twoFactorEnabled ? "Enabled" : "Not set"}
+                    </Badge>
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Security fields default to “Not set” if the account hasn’t
+                    configured them yet.
                   </p>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      navigator.clipboard.writeText(selectedUser._id)
-                    }
-                    className="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold text-slate-700 transition hover:bg-slate-300"
-                  >
-                    Copy
-                  </button>
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div className="space-y-3">
-              <p className="text-xs uppercase tracking-wide text-slate-500">
-                Listing Summary
-              </p>
+            <section className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+                    Listing Summary
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    Metrics aggregated from the most recent records.
+                  </p>
+                </div>
+                {listingsLoading && (
+                  <span className="text-xs text-slate-400">Refreshing…</span>
+                )}
+              </div>
               {listingsLoading ? (
                 <div className="text-xs text-slate-500">Loading listings…</div>
               ) : listingStats?.error ? (
-                <div className="text-xs text-rose-600">
+                <div className="rounded-2xl border border-rose-200 bg-rose-50/80 px-4 py-3 text-xs font-medium text-rose-600">
                   {listingStats.error}
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
                   {[
-                    "total",
-                    "active",
-                    "inactive",
-                    "offers",
-                    "sale",
-                    "rent",
-                  ].map((key) => (
+                    { key: "total", label: "Total" },
+                    { key: "active", label: "Active" },
+                    { key: "inactive", label: "Inactive" },
+                    { key: "offers", label: "Offers" },
+                    { key: "sale", label: "Sale" },
+                    { key: "rent", label: "Rent" },
+                  ].map(({ key, label }) => (
                     <div
                       key={key}
-                      className="rounded-lg border border-slate-100 bg-white/90 p-2"
+                      className="relative overflow-hidden rounded-2xl border border-white/60 bg-gradient-to-br from-slate-900/5 via-white to-slate-50 p-3 shadow-sm"
                     >
-                      <p className="text-[10px] uppercase tracking-wide text-slate-500">
-                        {key === "total"
-                          ? "Total"
-                          : key.charAt(0).toUpperCase() + key.slice(1)}
-                      </p>
-                      <p className="text-sm font-semibold text-slate-900">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-400">
+                        {label}
+                      </div>
+                      <div className="mt-2 text-xl font-bold text-slate-900">
                         {listingStats?.[key] ?? 0}
-                      </p>
+                      </div>
                     </div>
                   ))}
                 </div>
               )}
-              <p className="text-[10px] text-slate-400">
-                Counts limited to the first 100 listings for performance.
+              <p className="text-[11px] text-slate-400">
+                Counts are limited to the first 100 listings for performance
+                considerations.
               </p>
-            </div>
+            </section>
 
-            <div className="space-y-2">
-              <p className="text-xs uppercase tracking-wide text-slate-500">
-                Recent Listings
-              </p>
+            <section className="space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+                  Recent Listings
+                </p>
+                {!listingsLoading && userListings.length > 5 && (
+                  <span className="text-[11px] text-slate-400">
+                    Showing 5 of {userListings.length}
+                  </span>
+                )}
+              </div>
               {listingsLoading ? (
                 <div className="text-xs text-slate-500">Loading…</div>
               ) : userListings.length === 0 ? (
-                <div className="text-xs text-slate-500">
-                  No listings created by this user.
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-6 text-center text-xs text-slate-500">
+                  No listings created by this user yet.
                 </div>
               ) : (
-                <div className="overflow-hidden rounded-lg border border-slate-100">
+                <div className="overflow-hidden rounded-3xl border border-slate-100 shadow-inner">
                   <table className="w-full text-xs">
-                    <thead className="bg-slate-50 text-slate-600">
+                    <thead className="bg-slate-900/5 text-slate-600">
                       <tr>
-                        <th className="px-2 py-1 text-left font-semibold">
+                        <th className="px-3 py-2 text-left font-semibold uppercase tracking-wider">
                           Name
                         </th>
-                        <th className="px-2 py-1 text-left font-semibold">
+                        <th className="px-3 py-2 text-left font-semibold uppercase tracking-wider">
                           Type
                         </th>
-                        <th className="px-2 py-1 text-left font-semibold">
+                        <th className="px-3 py-2 text-left font-semibold uppercase tracking-wider">
                           Active
                         </th>
-                        <th className="px-2 py-1 text-left font-semibold">
+                        <th className="px-3 py-2 text-left font-semibold uppercase tracking-wider">
                           Created
                         </th>
                       </tr>
@@ -702,22 +770,22 @@ export default function UserManagement() {
                       {userListings.slice(0, 5).map((listing) => (
                         <tr
                           key={listing._id}
-                          className="border-t border-slate-100"
+                          className="border-t border-slate-100/70"
                         >
-                          <td className="max-w-[140px] truncate px-2 py-1 font-medium text-slate-800">
+                          <td className="max-w-[180px] truncate px-3 py-2 font-medium text-slate-800">
                             {listing.name}
                           </td>
-                          <td className="px-2 py-1 capitalize text-slate-600">
+                          <td className="px-3 py-2 capitalize text-slate-600">
                             {listing.type}
                           </td>
-                          <td className="px-2 py-1">
+                          <td className="px-3 py-2">
                             <Badge
                               variant={listing.isActive ? "success" : "outline"}
                             >
                               {listing.isActive ? "Yes" : "No"}
                             </Badge>
                           </td>
-                          <td className="px-2 py-1 text-slate-500">
+                          <td className="px-3 py-2 text-slate-500">
                             {new Date(listing.createdAt).toLocaleDateString()}
                           </td>
                         </tr>
@@ -725,16 +793,18 @@ export default function UserManagement() {
                     </tbody>
                   </table>
                   {userListings.length > 5 && (
-                    <div className="bg-slate-50 px-2 py-1 text-[10px] text-slate-500">
-                      + {userListings.length - 5} more (showing 5)
+                    <div className="bg-slate-900/5 px-3 py-2 text-[11px] text-slate-500">
+                      + {userListings.length - 5} more listings not shown in
+                      this preview.
                     </div>
                   )}
                 </div>
               )}
-            </div>
-            <p className="text-[10px] text-slate-400">
-              Data intended for administrative oversight. Additional actions can
-              be added here later.
+            </section>
+
+            <p className="text-[11px] text-slate-400">
+              Profile data is read-only. Administrative actions and notes will
+              surface here in future iterations.
             </p>
           </div>
         )}

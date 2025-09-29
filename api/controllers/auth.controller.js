@@ -24,14 +24,6 @@ export const signin = async (req, res, next) => {
     if (validUser.status === "deactivated") {
       return next(errorHandler(403, "Account deactivated"));
     }
-    // Allow admins to bypass pending; auto-upgrade if needed
-    if (validUser.status === "pending" && !validUser.isAdmin) {
-      return next(errorHandler(403, "Account pending approval"));
-    } else if (validUser.status === "pending" && validUser.isAdmin) {
-      // Promote admin account to approved automatically
-      validUser.status = "approved";
-      await validUser.save();
-    }
     const validPassword = bcryptjs.compareSync(password, validUser.password);
     if (!validPassword) return next(errorHandler(401, "wrong credentials"));
     const token = jwt.sign({ id: validUser._id }, process.env.JWT_SECRET);
@@ -51,12 +43,6 @@ export const google = async (req, res, next) => {
     if (user) {
       if (user.status === "deactivated") {
         return next(errorHandler(403, "Account deactivated"));
-      }
-      if (user.status === "pending" && !user.isAdmin) {
-        return next(errorHandler(403, "Account pending approval"));
-      } else if (user.status === "pending" && user.isAdmin) {
-        user.status = "approved";
-        await user.save();
       }
       const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
       const { password: pass, ...rest } = user._doc;

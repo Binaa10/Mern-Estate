@@ -55,8 +55,8 @@ const selectFilters = [
     width: "w-24",
     options: [
       { value: "all", label: "All" },
-      { value: "yes", label: "Yes" },
-      { value: "no", label: "No" },
+      { value: "true", label: "Yes" },
+      { value: "false", label: "No" },
     ],
   },
   {
@@ -65,8 +65,8 @@ const selectFilters = [
     width: "w-28",
     options: [
       { value: "all", label: "All" },
-      { value: "yes", label: "Yes" },
-      { value: "no", label: "No" },
+      { value: "true", label: "Yes" },
+      { value: "false", label: "No" },
     ],
   },
   {
@@ -75,8 +75,8 @@ const selectFilters = [
     width: "w-24",
     options: [
       { value: "all", label: "All" },
-      { value: "yes", label: "Yes" },
-      { value: "no", label: "No" },
+      { value: "true", label: "Yes" },
+      { value: "false", label: "No" },
     ],
   },
 ];
@@ -95,6 +95,22 @@ const emptyConfirmState = {
   action: null,
   title: "",
   description: "",
+};
+
+const normalizeBooleanFilter = (value) => {
+  if (value === null || typeof value === "undefined" || value === "all") {
+    return null;
+  }
+
+  if (value === true || value === "true" || value === "yes") {
+    return "true";
+  }
+
+  if (value === false || value === "false" || value === "no") {
+    return "false";
+  }
+
+  return null;
 };
 
 export default function Properties() {
@@ -119,34 +135,20 @@ export default function Properties() {
     try {
       setSummaryLoading(true);
       setSummaryError(null);
-      const endpoints = [
-        "/api/admin/listings?page=1&limit=1",
-        "/api/admin/listings?isActive=true&page=1&limit=1",
-        "/api/admin/listings?isActive=false&page=1&limit=1",
-        "/api/admin/listings?offer=true&page=1&limit=1",
-      ];
-      const responses = await Promise.all(endpoints.map((url) => fetch(url)));
-      const payloads = await Promise.all(
-        responses.map(async (res) => {
-          if (!res.ok) {
-            const data = await res.json().catch(() => ({}));
-            throw new Error(data.message || "Failed to load property summary");
-          }
-          return res.json();
-        })
-      );
-      const [allData, activeData, inactiveData, offerData] = payloads;
-      const parseTotal = (data) =>
-        typeof data?.total === "number"
-          ? data.total
-          : Array.isArray(data?.items)
-          ? data.items.length
-          : 0;
+      const res = await fetch("/api/admin/listings/summary", {
+        credentials: "include",
+        headers: { Accept: "application/json" },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || "Failed to load property summary");
+      }
+      const data = await res.json();
       setSummary({
-        total: parseTotal(allData),
-        active: parseTotal(activeData),
-        inactive: parseTotal(inactiveData),
-        offers: parseTotal(offerData),
+        total: typeof data?.total === "number" ? data.total : 0,
+        active: typeof data?.active === "number" ? data.active : 0,
+        inactive: typeof data?.inactive === "number" ? data.inactive : 0,
+        offers: typeof data?.offers === "number" ? data.offers : 0,
       });
     } catch (err) {
       setSummary(null);
@@ -172,11 +174,21 @@ export default function Properties() {
         const searchTerm = appliedSearch.trim();
         if (searchTerm) params.set("search", searchTerm);
         if (filters.type !== "all") params.set("type", filters.type);
-        if (filters.status !== "all") params.set("status", filters.status);
-        if (filters.offer !== "all") params.set("offer", filters.offer);
-        if (filters.furnished !== "all")
-          params.set("furnished", filters.furnished);
-        if (filters.parking !== "all") params.set("parking", filters.parking);
+        if (filters.status !== "all") {
+          params.set(
+            "isActive",
+            filters.status === "active" ? "true" : "false"
+          );
+        }
+
+        const offerValue = normalizeBooleanFilter(filters.offer);
+        if (offerValue !== null) params.set("offer", offerValue);
+
+        const furnishedValue = normalizeBooleanFilter(filters.furnished);
+        if (furnishedValue !== null) params.set("furnished", furnishedValue);
+
+        const parkingValue = normalizeBooleanFilter(filters.parking);
+        if (parkingValue !== null) params.set("parking", parkingValue);
 
         const res = await fetch(`/api/admin/listings?${params.toString()}`);
         if (!res.ok) {

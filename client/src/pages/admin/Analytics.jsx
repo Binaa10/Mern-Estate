@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Card,
   CardHeader,
@@ -33,18 +33,51 @@ import {
 const MONTHS_TO_SHOW = 6;
 const formatNumber = new Intl.NumberFormat();
 
-const buildMonthlySeries = (
-  items,
-  dateKey,
-  valueGetter,
-  months = MONTHS_TO_SHOW
-) => {
-  const now = new Date();
+const buildMonthlySeries = (items, dateKey, valueGetter, options = {}) => {
+  const { months = MONTHS_TO_SHOW, startDate = null, endDate = null } = options;
+
+  const parseBoundary = (value, endOfDay = false) => {
+    if (!value) return null;
+    const parsed = value instanceof Date ? new Date(value) : new Date(value);
+    if (Number.isNaN(parsed.valueOf())) return null;
+    parsed.setHours(
+      endOfDay ? 23 : 0,
+      endOfDay ? 59 : 0,
+      endOfDay ? 59 : 0,
+      endOfDay ? 999 : 0
+    );
+    return parsed;
+  };
+
+  const rangeStart = parseBoundary(startDate, false);
+  const rangeEnd = parseBoundary(endDate, true);
+
+  const anchorEnd = rangeEnd ? new Date(rangeEnd) : new Date();
+  const endMonth = new Date(anchorEnd.getFullYear(), anchorEnd.getMonth(), 1);
+
+  let startMonth = rangeStart
+    ? new Date(rangeStart.getFullYear(), rangeStart.getMonth(), 1)
+    : new Date(endMonth.getFullYear(), endMonth.getMonth() - (months - 1), 1);
+
+  let totalMonths =
+    (endMonth.getFullYear() - startMonth.getFullYear()) * 12 +
+    (endMonth.getMonth() - startMonth.getMonth()) +
+    1;
+
+  if (!Number.isFinite(totalMonths) || totalMonths < months) {
+    totalMonths = months;
+    startMonth = new Date(
+      endMonth.getFullYear(),
+      endMonth.getMonth() - (months - 1),
+      1
+    );
+  }
+
   const buckets = new Map();
   const labels = [];
 
-  for (let i = months - 1; i >= 0; i -= 1) {
-    const base = new Date(now.getFullYear(), now.getMonth() - i, 1);
+  for (let i = totalMonths - 1; i >= 0; i -= 1) {
+    const base = new Date(endMonth.getFullYear(), endMonth.getMonth() - i, 1);
     const key = `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(
       2,
       "0"
@@ -61,6 +94,8 @@ const buildMonthlySeries = (
     if (!rawDate) return;
     const parsed = new Date(rawDate);
     if (Number.isNaN(parsed.valueOf())) return;
+    if (rangeStart && parsed < rangeStart) return;
+    if (rangeEnd && parsed > rangeEnd) return;
     const bucketKey = `${parsed.getFullYear()}-${String(
       parsed.getMonth() + 1
     ).padStart(2, "0")}`;
@@ -86,8 +121,38 @@ export default function Analytics() {
   });
   const [userItems, setUserItems] = useState([]);
   const [listingItems, setListingItems] = useState([]);
+  const [filteredUsers, setFilteredUsers] = useState([]);
+  const [filteredListings, setFilteredListings] = useState([]);
+  const [appliedRange, setAppliedRange] = useState({ start: null, end: null });
+  const [isFilterActive, setIsFilterActive] = useState(false);
+  const [filterError, setFilterError] = useState(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+
+  const filterItemsByRange = useCallback((items, dateKey, range) => {
+    if (!Array.isArray(items) || items.length === 0) {
+      return [];
+    }
+
+    const hasStart = Boolean(range?.start);
+    const hasEnd = Boolean(range?.end);
+    if (!hasStart && !hasEnd) {
+      return items.slice();
+    }
+
+    const start = hasStart ? new Date(range.start) : null;
+    const end = hasEnd ? new Date(range.end) : null;
+
+    return items.filter((item) => {
+      const rawDate = item?.[dateKey];
+      if (!rawDate) return false;
+      const parsed = new Date(rawDate);
+      if (Number.isNaN(parsed.valueOf())) return false;
+      if (start && parsed < start) return false;
+      if (end && parsed > end) return false;
+      return true;
+    });
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -195,45 +260,171 @@ export default function Analytics() {
     };
   }, []);
 
-  const userGrowthData = useMemo(
-    () =>
-      buildMonthlySeries(userItems, "createdAt", () => 1).map((entry) => ({
-        month: entry.month,
-        users: entry.value,
-      })),
-    [userItems]
+  useEffect(() => {
+    const range = isFilterActive ? appliedRange : { start: null, end: null };
+    const nextUsers = filterItemsByRange(userItems, "createdAt", range);
+    const nextListings = filterItemsByRange(listingItems, "createdAt", range);
+    setFilteredUsers(nextUsers);
+    setFilteredListings(nextListings);
+  }, [
+    userItems,
+    listingItems,
+    appliedRange,
+    isFilterActive,
+    filterItemsByRange,
+  ]);
+
+  const handleApplyFilters = useCallback(
+    (event) => {
+      event?.preventDefault?.();
+      if (loading) return;
+
+      const hasStart = Boolean(startDate);
+      const hasEnd = Boolean(endDate);
+
+      const parseInputDate = (value, endOfDay = false) => {
+        if (!value) return null;
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.valueOf())) return null;
+        if (endOfDay) {
+          parsed.setHours(23, 59, 59, 999);
+        } else {
+          parsed.setHours(0, 0, 0, 0);
+        }
+        return parsed;
+      };
+
+      const start = hasStart ? parseInputDate(startDate, false) : null;
+      const end = hasEnd ? parseInputDate(endDate, true) : null;
+
+      if (hasStart && !start) {
+        setFilterError("Please provide a valid start date.");
+        return;
+      }
+      if (hasEnd && !end) {
+        setFilterError("Please provide a valid end date.");
+        return;
+      }
+      if (start && end && start > end) {
+        setFilterError("Start date must be before the end date.");
+        return;
+      }
+
+      if (!start && !end) {
+        setAppliedRange({ start: null, end: null });
+        setIsFilterActive(false);
+        setFilterError(null);
+        return;
+      }
+
+      const range = { start, end };
+      const nextUsers = filterItemsByRange(userItems, "createdAt", range);
+      const nextListings = filterItemsByRange(listingItems, "createdAt", range);
+
+      setAppliedRange(range);
+      setIsFilterActive(true);
+      setFilterError(null);
+      setFilteredUsers(nextUsers);
+      setFilteredListings(nextListings);
+    },
+    [endDate, filterItemsByRange, listingItems, loading, startDate, userItems]
   );
 
-  const propertyTrendData = useMemo(
+  const displayMetrics = useMemo(() => {
+    if (!isFilterActive) {
+      return metrics;
+    }
+
+    const referenceEnd = appliedRange.end
+      ? new Date(appliedRange.end)
+      : new Date();
+    referenceEnd.setHours(23, 59, 59, 999);
+    const windowStart = new Date(referenceEnd);
+    windowStart.setDate(windowStart.getDate() - 6);
+    windowStart.setHours(0, 0, 0, 0);
+
+    const countRecent = (items) =>
+      items.filter((item) => {
+        const rawDate = item?.createdAt;
+        if (!rawDate) return false;
+        const parsed = new Date(rawDate);
+        if (Number.isNaN(parsed.valueOf())) return false;
+        return parsed >= windowStart && parsed <= referenceEnd;
+      }).length;
+
+    return {
+      totalUsers: filteredUsers.length,
+      totalProperties: filteredListings.length,
+      newUsers7d: countRecent(filteredUsers),
+      newProperties7d: countRecent(filteredListings),
+    };
+  }, [
+    appliedRange.end,
+    filteredListings,
+    filteredUsers,
+    isFilterActive,
+    metrics,
+  ]);
+
+  const monthlyOptions = useMemo(
     () =>
-      buildMonthlySeries(listingItems, "createdAt", () => 1).map((entry) => ({
-        month: entry.month,
-        properties: entry.value,
-      })),
-    [listingItems]
+      appliedRange.start || appliedRange.end
+        ? { startDate: appliedRange.start, endDate: appliedRange.end }
+        : {},
+    [appliedRange.end, appliedRange.start]
   );
 
-  const revenueData = useMemo(
-    () =>
-      buildMonthlySeries(listingItems, "createdAt", (item) => {
+  const userGrowthData = useMemo(() => {
+    const series = buildMonthlySeries(
+      filteredUsers,
+      "createdAt",
+      () => 1,
+      monthlyOptions
+    );
+    return series.map((entry) => ({
+      month: entry.month,
+      users: entry.value,
+    }));
+  }, [filteredUsers, monthlyOptions]);
+
+  const propertyTrendData = useMemo(() => {
+    const series = buildMonthlySeries(
+      filteredListings,
+      "createdAt",
+      () => 1,
+      monthlyOptions
+    );
+    return series.map((entry) => ({
+      month: entry.month,
+      properties: entry.value,
+    }));
+  }, [filteredListings, monthlyOptions]);
+
+  const revenueData = useMemo(() => {
+    const series = buildMonthlySeries(
+      filteredListings,
+      "createdAt",
+      (item) => {
         const value = item?.offer ? item.discountPrice : item?.regularPrice;
         return typeof value === "number" && Number.isFinite(value) ? value : 0;
-      }).map((entry) => ({
-        month: entry.month,
-        revenue: entry.value,
-      })),
-    [listingItems]
-  );
+      },
+      monthlyOptions
+    );
+    return series.map((entry) => ({
+      month: entry.month,
+      revenue: entry.value,
+    }));
+  }, [filteredListings, monthlyOptions]);
 
   const propertyTypeData = useMemo(() => {
-    if (!listingItems.length) {
+    if (!filteredListings.length) {
       return [
         { name: "Sale", value: 0, color: "#6366f1" },
         { name: "Rent", value: 0, color: "#22c55e" },
       ];
     }
 
-    const counts = listingItems.reduce(
+    const counts = filteredListings.reduce(
       (acc, listing) => {
         const type = String(listing?.type || "").toLowerCase();
         if (type === "sale") acc.sale += 1;
@@ -254,41 +445,44 @@ export default function Analytics() {
     }
 
     return data;
-  }, [listingItems]);
+  }, [filteredListings]);
 
-  const metricsConfig = useMemo(
-    () => [
+  const metricsConfig = useMemo(() => {
+    const values = displayMetrics || {};
+    const totalNote = isFilterActive ? "Within selected range" : "All time";
+    const recentNote = isFilterActive ? "Last 7 days in range" : "Last 7 days";
+
+    return [
       {
         label: "Total Users",
-        value: metrics.totalUsers,
-        note: "All time",
+        value: values.totalUsers,
+        note: totalNote,
         icon: HiOutlineUsers,
         accent: "from-indigo-500/20 to-indigo-100/40 text-indigo-600",
       },
       {
         label: "Total Properties",
-        value: metrics.totalProperties,
-        note: "All time",
+        value: values.totalProperties,
+        note: totalNote,
         icon: HiOutlineOfficeBuilding,
         accent: "from-emerald-500/20 to-emerald-100/40 text-emerald-600",
       },
       {
         label: "New Users (7d)",
-        value: metrics.newUsers7d,
-        note: "Last 7 days",
+        value: values.newUsers7d,
+        note: recentNote,
         icon: HiOutlineUserAdd,
         accent: "from-sky-500/20 to-sky-100/40 text-sky-600",
       },
       {
         label: "New Properties (7d)",
-        value: metrics.newProperties7d,
-        note: "Last 7 days",
+        value: values.newProperties7d,
+        note: recentNote,
         icon: HiOutlineBuildingAdd,
         accent: "from-amber-500/20 to-amber-100/40 text-amber-600",
       },
-    ],
-    [metrics]
-  );
+    ];
+  }, [displayMetrics, isFilterActive]);
 
   return (
     <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-[1px]">
@@ -318,7 +512,10 @@ export default function Analytics() {
             <CardDescription>Adjust date range and metrics</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-3">
+            <form
+              onSubmit={handleApplyFilters}
+              className="grid gap-4 md:grid-cols-3"
+            >
               <div className="space-y-2">
                 <Label htmlFor="startDate">Start Date</Label>
                 <Input
@@ -340,11 +537,20 @@ export default function Analytics() {
                 />
               </div>
               <div className="flex items-end">
-                <Button className="w-full rounded-2xl bg-slate-900 text-white shadow-lg shadow-slate-900/20 transition hover:bg-indigo-700">
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full rounded-2xl bg-slate-900 text-white shadow-lg shadow-slate-900/20 transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-70"
+                >
                   Apply Filters
                 </Button>
               </div>
-            </div>
+            </form>
+            {filterError && (
+              <p className="mt-3 text-sm font-semibold text-rose-600">
+                {filterError}
+              </p>
+            )}
           </CardContent>
         </Card>
 
