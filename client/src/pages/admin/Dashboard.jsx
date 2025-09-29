@@ -45,6 +45,10 @@ const quickLinks = [
     icon: HiOutlineUser,
   },
 ];
+const currencyFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+});
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -241,6 +245,13 @@ export default function AdminDashboard() {
   ]
     .join(" ")
     .trim();
+
+  const copyToClipboard = (value) => {
+    if (!value) return;
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(value).catch(() => {});
+    }
+  };
 
   return (
     <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-[1px]">
@@ -457,16 +468,17 @@ export default function AdminDashboard() {
         <Dialog
           open={!!selectedProperty}
           onOpenChange={(o) => !o && setSelectedProperty(null)}
-          title="Property Details"
+          title={selectedProperty?.name || "Listing details"}
           footer={
             <div className="flex w-full items-center justify-between">
-              <div className="text-xs font-medium text-slate-400">
-                ID: {selectedProperty?._id?.slice(0, 8)}…
+              <div className="text-xs text-slate-400">
+                ID: {selectedProperty?._id ?? "—"}
               </div>
               <Button
-                variant="default"
+                type="button"
+                variant="outline"
+                className="rounded-xl"
                 onClick={() => setSelectedProperty(null)}
-                className="rounded-full px-5 text-xs font-semibold"
               >
                 Close
               </Button>
@@ -475,123 +487,130 @@ export default function AdminDashboard() {
         >
           {selectedProperty && (
             <div className="space-y-6 text-sm">
-              <div className="flex flex-col gap-3">
-                <div className="flex flex-wrap items-center gap-3">
-                  <h2 className="text-lg font-semibold tracking-tight text-slate-900">
-                    {selectedProperty.name}
-                  </h2>
-                  {selectedPropertyStatus && (
-                    <Badge
-                      variant={
-                        selectedPropertyStatus.badge?.variant || "outline"
-                      }
-                      className={selectedPropertyStatusBadgeClass || undefined}
-                    >
-                      {selectedPropertyStatus.label}
-                    </Badge>
-                  )}
-                  {selectedProperty.offer && (
-                    <Badge className="border-amber-200 bg-amber-100 text-amber-700">
-                      Offer
-                    </Badge>
-                  )}
-                  <Badge className="border-slate-200 bg-slate-100 text-slate-700">
+              <section className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 px-5 py-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge
+                    variant={
+                      selectedPropertyStatus?.badge?.variant || "outline"
+                    }
+                    className={selectedPropertyStatusBadgeClass || undefined}
+                  >
+                    {selectedPropertyStatus?.label || "Inactive"}
+                  </Badge>
+                  <Badge className="rounded-full bg-slate-200/70 text-slate-700">
                     {selectedProperty.type}
                   </Badge>
-                </div>
-                <div className="flex flex-wrap gap-4 text-xs text-slate-500">
-                  <span>
-                    Created:{" "}
-                    {new Date(selectedProperty.createdAt).toLocaleString()}
-                  </span>
-                  {selectedProperty.updatedAt && (
-                    <span>
-                      Updated:{" "}
-                      {new Date(selectedProperty.updatedAt).toLocaleString()}
-                    </span>
+                  {selectedProperty.offer && (
+                    <Badge className="rounded-full bg-amber-100 text-amber-700">
+                      Offer available
+                    </Badge>
                   )}
                 </div>
-              </div>
+                <p className="text-xs text-slate-500">
+                  Created{" "}
+                  {new Date(selectedProperty.createdAt).toLocaleString()}
+                  {selectedProperty.updatedAt
+                    ? ` • Updated ${new Date(
+                        selectedProperty.updatedAt
+                      ).toLocaleString()}`
+                    : ""}
+                </p>
+              </section>
 
-              <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-                <div className="space-y-1 rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
-                  <p className="text-xs uppercase tracking-wide text-slate-500">
-                    Regular Price
+              <section className="grid gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-5 sm:grid-cols-2">
+                {[
+                  {
+                    label: "Regular Price",
+                    value: currencyFormatter.format(
+                      selectedProperty.regularPrice || 0
+                    ),
+                  },
+                  {
+                    label: "Discount Price",
+                    value: selectedProperty.discountPrice
+                      ? currencyFormatter.format(selectedProperty.discountPrice)
+                      : "Not set",
+                  },
+                  { label: "Bedrooms", value: selectedProperty.bedrooms },
+                  { label: "Bathrooms", value: selectedProperty.bathrooms },
+                  {
+                    label: "Parking",
+                    value: selectedProperty.parking ? "Yes" : "No",
+                  },
+                  {
+                    label: "Furnished",
+                    value: selectedProperty.furnished ? "Yes" : "No",
+                  },
+                ].map((item) => (
+                  <div key={item.label} className="space-y-1">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                      {item.label}
+                    </p>
+                    <p className="text-base font-semibold text-slate-900">
+                      {item.value ?? "—"}
+                    </p>
+                  </div>
+                ))}
+                <div className="sm:col-span-2 space-y-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                    Owner Reference
                   </p>
-                  <p className="text-base font-semibold text-slate-900">
-                    ${selectedProperty.regularPrice?.toLocaleString()}
-                  </p>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(selectedProperty.userRef)}
+                    className="inline-flex items-center gap-2 font-mono text-xs text-indigo-600 hover:underline"
+                  >
+                    {selectedProperty.userRef}
+                  </button>
                 </div>
-                <div className="space-y-1 rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
-                  <p className="text-xs uppercase tracking-wide text-slate-500">
-                    Discount Price
-                  </p>
-                  <p className="text-base font-semibold text-slate-900">
-                    {selectedProperty.discountPrice
-                      ? `$${selectedProperty.discountPrice.toLocaleString()}`
-                      : "—"}
-                  </p>
-                </div>
-                <div className="space-y-1 rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
-                  <p className="text-xs uppercase tracking-wide text-slate-500">
-                    Offer
-                  </p>
-                  <p className="text-base font-semibold text-slate-900">
-                    {selectedProperty.offer ? "Yes" : "No"}
-                  </p>
-                </div>
-              </div>
+              </section>
 
               {selectedProperty.description && (
-                <div className="space-y-2 rounded-2xl border border-slate-100 bg-white/80 p-4">
-                  <p className="text-xs uppercase tracking-wide text-slate-500">
+                <section className="space-y-2 rounded-2xl border border-slate-200 bg-white px-5 py-5">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">
                     Description
                   </p>
-                  <p className="leading-relaxed text-slate-700 whitespace-pre-line">
+                  <p className="leading-relaxed text-slate-700">
                     {selectedProperty.description}
                   </p>
-                </div>
+                </section>
               )}
 
-              <div className="space-y-3">
-                <p className="text-xs uppercase tracking-wide text-slate-500">
-                  Images ({selectedProperty.imageUrls?.length || 0})
-                </p>
-                {(!selectedProperty.imageUrls ||
-                  selectedProperty.imageUrls.length === 0) && (
-                  <p className="rounded-xl border border-slate-100 bg-slate-50/60 px-3 py-2 text-xs text-slate-500">
-                    No images uploaded.
+              <section className="space-y-2 rounded-2xl border border-slate-200 bg-white px-5 py-5">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-400">
+                    Media Gallery
                   </p>
-                )}
-                {selectedProperty.imageUrls?.length > 0 && (
-                  <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
-                    {selectedProperty.imageUrls.map((url, i) => (
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-medium text-slate-600">
+                    {selectedProperty.imageUrls?.length || 0} item(s)
+                  </span>
+                </div>
+                {selectedProperty.imageUrls?.length ? (
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {selectedProperty.imageUrls.map((url, index) => (
                       <div
-                        key={i}
-                        className="group relative overflow-hidden rounded-xl border border-slate-100 bg-slate-50"
+                        key={`${url}-${index}`}
+                        className="group relative overflow-hidden rounded-xl border border-slate-200 bg-slate-50"
                       >
                         <img
                           src={url}
-                          alt={`img-${i}`}
-                          className="h-24 w-full object-cover transition duration-200 group-hover:scale-105"
+                          alt={`listing-${index}`}
+                          className="h-28 w-full object-cover transition duration-200 group-hover:scale-[1.03]"
                         />
                         <button
                           type="button"
-                          onClick={() => navigator.clipboard.writeText(url)}
-                          className="absolute bottom-2 right-2 rounded-full bg-black/50 px-2 py-1 text-[10px] font-semibold text-white opacity-0 transition group-hover:opacity-100"
+                          onClick={() => copyToClipboard(url)}
+                          className="absolute bottom-2 right-2 rounded-full bg-slate-900/70 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 transition group-hover:opacity-100"
                         >
-                          Copy
+                          Copy URL
                         </button>
                       </div>
                     ))}
                   </div>
+                ) : (
+                  <p className="text-xs text-slate-500">No media available.</p>
                 )}
-              </div>
-
-              <p className="text-xs font-medium text-slate-400">
-                View full details and management options in the Properties
-                section.
-              </p>
+              </section>
             </div>
           )}
         </Dialog>

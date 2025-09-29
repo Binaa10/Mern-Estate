@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Swiper, SwiperSlide } from "swiper/react";
 import SwiperCore from "swiper";
 import { Navigation } from "swiper/modules";
@@ -19,6 +19,7 @@ export default function Listing() {
   const { currentUser } = useSelector((state) => state.user);
 
   SwiperCore.use([Navigation]);
+  const navigate = useNavigate();
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
@@ -67,6 +68,13 @@ export default function Listing() {
         ).toLocaleString("en-US")
       : null;
   const isRental = listing?.type === "rent";
+  const handleGoBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate("/profile");
+    }
+  };
 
   return (
     <main className="relative min-h-screen bg-gradient-to-br from-emerald-50 via-white to-slate-100 text-slate-900">
@@ -119,6 +127,16 @@ export default function Listing() {
           </div>
 
           <section className="relative z-10 mx-auto mt-12 max-w-6xl px-4 sm:mt-16">
+            <div className="mb-6">
+              <button
+                type="button"
+                onClick={handleGoBack}
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:text-emerald-600"
+              >
+                <span aria-hidden="true">←</span>
+                <span>Back to listings</span>
+              </button>
+            </div>
             <div className="rounded-[32px] border border-emerald-100/80 bg-white p-8 shadow-2xl shadow-emerald-100/60 sm:p-10">
               <div className="grid gap-10 lg:grid-cols-[1.7fr,1fr]">
                 <article className="space-y-8">

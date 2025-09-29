@@ -159,7 +159,7 @@ export default function Header() {
 
   return (
     <header className="relative z-50 bg-[#2c3b4f] text-slate-100 shadow-lg shadow-slate-900/20 transition-colors dark:bg-slate-900 dark:text-slate-100">
-      <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
+      <div className="flex w-full flex-col gap-4 py-4">
         <div className="flex w-full flex-wrap items-center justify-between gap-4">
           <Link to="/" className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-green-300 via-emerald-500 to-emerald-600 text-lg font-bold text-slate-900 shadow-lg shadow-emerald-500/30 ring-2 ring-emerald-500/40">

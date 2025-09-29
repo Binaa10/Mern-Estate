@@ -287,7 +287,7 @@ export default function AdminProfile() {
             />
             <div className="flex flex-col sm:flex-row sm:items-center gap-6">
               <div
-                className="group relative h-24 w-24 cursor-pointer overflow-hidden rounded-full ring-2 ring-slate-200 bg-slate-100"
+                className="group relative inline-flex h-28 w-28 cursor-pointer"
                 role="button"
                 tabIndex={0}
                 title="Change profile picture"
@@ -299,14 +299,16 @@ export default function AdminProfile() {
                   }
                 }}
               >
-                <img
-                  src={avatarPreview || DEFAULT_AVATAR}
-                  alt="Profile avatar preview"
-                  className="h-full w-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.src = DEFAULT_AVATAR;
-                  }}
-                />
+                <div className="h-full w-full overflow-hidden rounded-full ring-2 ring-slate-200 bg-slate-100 shadow-lg">
+                  <img
+                    src={avatarPreview || DEFAULT_AVATAR}
+                    alt="Profile avatar preview"
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = DEFAULT_AVATAR;
+                    }}
+                  />
+                </div>
                 <button
                   type="button"
                   onClick={(event) => {
@@ -315,10 +317,10 @@ export default function AdminProfile() {
                   }}
                   disabled={avatarUploading}
                   title="Change profile picture"
-                  className="absolute bottom-0 right-0 inline-flex h-10 w-10 translate-x-1/4 translate-y-1/4 items-center justify-center rounded-full border-2 border-white bg-slate-900 text-white shadow-lg transition hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400"
+                  className="absolute -bottom-4 -right-4 inline-flex h-12 w-12 items-center justify-center rounded-full border-2 border-white bg-slate-900 text-white shadow-xl transition hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400"
                   aria-label="Change profile picture"
                 >
-                  <HiOutlinePencil className="h-5 w-5" />
+                  <HiOutlinePencil className="h-6 w-6" />
                 </button>
                 {avatarUploading && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-xs font-medium text-white">

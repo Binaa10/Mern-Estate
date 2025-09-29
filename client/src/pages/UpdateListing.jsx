@@ -36,6 +36,14 @@ export default function CreateListing() {
   const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
   const MAX_FILE_COUNT = 6;
 
+  const handleGoBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate("/profile");
+    }
+  };
+
   useEffect(() => {
     const fetchListing = async () => {
       const listingId = params.listingId;
@@ -186,6 +194,16 @@ export default function CreateListing() {
       <div className="pointer-events-none absolute -bottom-16 right-10 h-80 w-80 rounded-full bg-emerald-100/60 blur-3xl" />
 
       <div className="relative mx-auto max-w-6xl px-4 py-16">
+        <div className="mb-6">
+          <button
+            type="button"
+            onClick={handleGoBack}
+            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:text-emerald-600"
+          >
+            <span aria-hidden="true">←</span>
+            <span>Back to listings</span>
+          </button>
+        </div>
         <header className="mb-10 text-center">
           <h1 className="text-3xl font-semibold text-slate-900 sm:text-4xl">
             Update a Listing
