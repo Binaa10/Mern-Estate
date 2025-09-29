@@ -144,3 +144,28 @@ export const getListings = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getListingStats = async (req, res, next) => {
+  try {
+    const baseFilter = {
+      status: { $in: ["active", null] },
+      isActive: { $ne: false },
+    };
+
+    const [totalActive, saleCount, rentCount, offerCount] = await Promise.all([
+      Listing.countDocuments(baseFilter),
+      Listing.countDocuments({ ...baseFilter, type: "sale" }),
+      Listing.countDocuments({ ...baseFilter, type: "rent" }),
+      Listing.countDocuments({ ...baseFilter, offer: true }),
+    ]);
+
+    res.status(200).json({
+      totalActive,
+      saleCount,
+      rentCount,
+      offerCount,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
