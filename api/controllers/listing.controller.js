@@ -3,7 +3,15 @@ import { errorHandler } from "../utils/error.js";
 
 export const createListing = async (req, res, next) => {
   try {
-    const listing = await Listing.create(req.body);
+    const payload = { ...req.body };
+    delete payload.status;
+    delete payload.isActive;
+
+    const listing = await Listing.create({
+      ...payload,
+      status: "pending",
+      isActive: false,
+    });
     return res.status(201).json(listing);
   } catch (error) {
     next(error);
@@ -36,9 +44,13 @@ export const updateListing = async (req, res, next) => {
     return next(errorHandler(401, "You can only delete your own listing..."));
   }
   try {
+    const updates = { ...req.body };
+    delete updates.status;
+    delete updates.isActive;
+
     const updateListing = await Listing.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      updates,
       { new: true }
     );
     res.status(200).json(updateListing);
@@ -108,6 +120,8 @@ export const getListings = async (req, res, next) => {
       furnished: furnishedFilter,
       parking: parkingFilter,
       type: typeFilter,
+      status: { $in: ["active", null] },
+      isActive: { $ne: false },
     };
 
     const totalCount = await Listing.countDocuments(filters);

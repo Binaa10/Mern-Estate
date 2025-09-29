@@ -6,7 +6,7 @@ import {
   getUserSummary,
   getListingSummary,
   updateUserStatus,
-  updateListingActive,
+  updateListingStatus,
   adminDeleteListing,
 } from "../controllers/admin.controller.js";
 import { verifyAdmin } from "../utils/verifyAdmin.js";
@@ -19,7 +19,7 @@ router.get("/listings", verifyAdmin, getAdminListings);
 router.get("/listings/summary", verifyAdmin, getListingSummary);
 router.get("/metrics", verifyAdmin, getBasicMetrics);
 router.patch("/users/:id/status", verifyAdmin, updateUserStatus);
-router.patch("/listings/:id/active", verifyAdmin, updateListingActive);
+router.patch("/listings/:id/status", verifyAdmin, updateListingStatus);
 router.delete("/listings/:id", verifyAdmin, adminDeleteListing);
 
 export default router;

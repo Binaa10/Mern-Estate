@@ -11,6 +11,7 @@ import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
 import { Table, THead, TBody, TR, TH, TD } from "../../components/ui/table";
 import { Dialog } from "../../components/ui/dialog";
+import { getListingStatusMeta } from "../../utils/listingStatus";
 import {
   HiOutlineChartBar,
   HiOutlineUsers,
@@ -231,6 +232,16 @@ export default function AdminDashboard() {
     },
   ];
 
+  const selectedPropertyStatus = selectedProperty
+    ? getListingStatusMeta(selectedProperty)
+    : null;
+  const selectedPropertyStatusBadgeClass = [
+    "rounded-full",
+    selectedPropertyStatus?.badge?.className || "",
+  ]
+    .join(" ")
+    .trim();
+
   return (
     <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-[1px]">
       <div className="absolute inset-0 translate-y-[-60%] bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.18),_transparent_55%)]" />
@@ -332,60 +343,70 @@ export default function AdminDashboard() {
                       </TR>
                     </THead>
                     <TBody>
-                      {recentListings.map((l) => (
-                        <TR
-                          key={l._id}
-                          className="group border-t border-slate-100/80"
-                        >
-                          <TD>
-                            <div className="h-12 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-slate-100">
-                              {l.imageUrls?.[0] && (
-                                <img
-                                  src={l.imageUrls[0]}
-                                  alt={l.name}
-                                  className="h-full w-full object-cover transition duration-200 group-hover:scale-105"
-                                />
-                              )}
-                            </div>
-                          </TD>
-                          <TD className="max-w-[220px] truncate font-medium text-slate-700">
-                            {l.name}
-                          </TD>
-                          <TD>
-                            <Badge variant="outline" className="capitalize">
-                              {l.type}
-                            </Badge>
-                          </TD>
-                          <TD>
-                            <div className="flex flex-col gap-1">
-                              <Badge
-                                variant={l.isActive ? "success" : "outline"}
-                                className="text-xs"
-                              >
-                                {l.isActive ? "Active" : "Inactive"}
+                      {recentListings.map((l) => {
+                        const { label, badge } = getListingStatusMeta(l);
+                        const badgeClassName = [
+                          "text-xs capitalize",
+                          badge?.className || "",
+                        ]
+                          .join(" ")
+                          .trim();
+
+                        return (
+                          <TR
+                            key={l._id}
+                            className="group border-t border-slate-100/80"
+                          >
+                            <TD>
+                              <div className="h-12 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-slate-100">
+                                {l.imageUrls?.[0] && (
+                                  <img
+                                    src={l.imageUrls[0]}
+                                    alt={l.name}
+                                    className="h-full w-full object-cover transition duration-200 group-hover:scale-105"
+                                  />
+                                )}
+                              </div>
+                            </TD>
+                            <TD className="max-w-[220px] truncate font-medium text-slate-700">
+                              {l.name}
+                            </TD>
+                            <TD>
+                              <Badge variant="outline" className="capitalize">
+                                {l.type}
                               </Badge>
-                              {l.offer && (
-                                <Badge className="border-amber-200 bg-amber-100 text-amber-700 text-xs">
-                                  Offer
+                            </TD>
+                            <TD>
+                              <div className="flex flex-col gap-1">
+                                <Badge
+                                  variant={badge?.variant || "outline"}
+                                  className={badgeClassName || undefined}
+                                >
+                                  {label}
                                 </Badge>
-                              )}
-                            </div>
-                          </TD>
-                          <TD className="text-sm text-slate-500">
-                            {new Date(l.createdAt).toLocaleDateString()}
-                          </TD>
-                          <TD className="text-right">
-                            <Button
-                              size="sm"
-                              variant="default"
-                              onClick={() => setSelectedProperty(l)}
-                              className="rounded-full px-4 text-xs font-semibold"
-                            >
-                              View
-                            </Button>
-                          </TD>
-                        </TR>
-                      ))}
+                                {l.offer && (
+                                  <Badge className="bg-amber-100 text-amber-700 text-xs">
+                                    Offer
+                                  </Badge>
+                                )}
+                              </div>
+                            </TD>
+                            <TD className="text-sm text-slate-500">
+                              {new Date(l.createdAt).toLocaleDateString()}
+                            </TD>
+                            <TD className="text-right">
+                              <Button
+                                size="sm"
+                                variant="default"
+                                onClick={() => setSelectedProperty(l)}
+                                className="rounded-full px-4 text-xs font-semibold"
+                              >
+                                View
+                              </Button>
+                            </TD>
+                          </TR>
+                        );
+                      })}
                     </TBody>
                   </Table>
                 </div>
@@ -459,11 +480,16 @@ export default function AdminDashboard() {
                   <h2 className="text-lg font-semibold tracking-tight text-slate-900">
                     {selectedProperty.name}
                   </h2>
-                  <Badge
-                    variant={selectedProperty.isActive ? "success" : "outline"}
-                  >
-                    {selectedProperty.isActive ? "Active" : "Inactive"}
-                  </Badge>
+                  {selectedPropertyStatus && (
+                    <Badge
+                      variant={
+                        selectedPropertyStatus.badge?.variant || "outline"
+                      }
+                      className={selectedPropertyStatusBadgeClass || undefined}
+                    >
+                      {selectedPropertyStatus.label}
+                    </Badge>
+                  )}
                   {selectedProperty.offer && (
                     <Badge className="border-amber-200 bg-amber-100 text-amber-700">
                       Offer

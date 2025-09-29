@@ -12,29 +12,45 @@ import {
 } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { Select } from "../../components/ui/select";
+import {
+  STATUS_VALUE_MAP,
+  getListingStatusMeta,
+} from "../../utils/listingStatus";
 
-const numberFormatter = new Intl.NumberFormat("en-US");
+const numberFormatter = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 0,
+});
+
 const currencyFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
-  maximumFractionDigits: 0,
 });
 
 const statusTabs = [
   {
     value: "all",
-    label: "All",
+    label: "All listings",
     description: "Every property in the system",
   },
   {
-    value: "active",
-    label: "Active",
-    description: "Currently visible to buyers",
+    value: "pending",
+    label: "Pending",
+    description: "Awaiting admin approval",
+  },
+  {
+    value: "accepted",
+    label: "Accepted & Active",
+    description: "Approved listings currently live for buyers",
+  },
+  {
+    value: "declined",
+    label: "Declined",
+    description: "Rejected or manually removed",
   },
   {
     value: "inactive",
     label: "Inactive",
-    description: "Temporarily hidden listings",
+    description: "Hidden from buyers but not deleted",
   },
 ];
 
@@ -146,8 +162,20 @@ export default function Properties() {
       const data = await res.json();
       setSummary({
         total: typeof data?.total === "number" ? data.total : 0,
-        active: typeof data?.active === "number" ? data.active : 0,
+        accepted:
+          typeof data?.accepted === "number"
+            ? data.accepted
+            : typeof data?.active === "number"
+            ? data.active
+            : 0,
+        declined:
+          typeof data?.declined === "number"
+            ? data.declined
+            : typeof data?.inactive === "number"
+            ? data.inactive
+            : 0,
         inactive: typeof data?.inactive === "number" ? data.inactive : 0,
+        pending: typeof data?.pending === "number" ? data.pending : 0,
         offers: typeof data?.offers === "number" ? data.offers : 0,
       });
     } catch (err) {
@@ -174,11 +202,9 @@ export default function Properties() {
         const searchTerm = appliedSearch.trim();
         if (searchTerm) params.set("search", searchTerm);
         if (filters.type !== "all") params.set("type", filters.type);
-        if (filters.status !== "all") {
-          params.set(
-            "isActive",
-            filters.status === "active" ? "true" : "false"
-          );
+        const statusParam = STATUS_VALUE_MAP[filters.status] ?? filters.status;
+        if (statusParam && statusParam !== "all") {
+          params.set("status", statusParam);
         }
 
         const offerValue = normalizeBooleanFilter(filters.offer);
@@ -265,25 +291,44 @@ export default function Properties() {
   };
 
   const openConfirm = (listing, action) => {
-    const copy = {
-      toggle: {
-        title: listing.isActive ? "Mark as unavailable" : "Activate listing",
-        description: listing.isActive
-          ? `Hide ${listing.name} from the marketplace?`
-          : `Make ${listing.name} visible to users immediately?`,
+    const name = listing.name;
+
+    const messages = {
+      approve: {
+        title: "Approve listing",
+        description: `Approve ${name} so it becomes visible to buyers right away.`,
+      },
+      activate: {
+        title: "Activate listing",
+        description: `Make ${name} visible to users immediately?`,
+      },
+      reapprove: {
+        title: "Reapprove listing",
+        description: `Approve ${name} again so it returns to the marketplace?`,
+      },
+      decline: {
+        title: "Decline listing",
+        description: `Decline ${name} and keep it hidden from the marketplace?`,
+      },
+      deactivate: {
+        title: "Deactivate listing",
+        description: `Hide ${name} from the marketplace until it is reactivated?`,
       },
       delete: {
         title: "Delete listing",
-        description: `Permanently remove ${listing.name}? This can’t be undone.`,
+        description: `Permanently remove ${name}? This can’t be undone.`,
       },
     };
+
+    const config = messages[action];
+    if (!config) return;
 
     setConfirmState({
       open: true,
       listing,
       action,
-      title: copy[action].title,
-      description: copy[action].description,
+      title: config.title,
+      description: config.description,
     });
   };
 
@@ -294,20 +339,7 @@ export default function Properties() {
 
     try {
       setActionLoading(true);
-      if (confirmState.action === "toggle") {
-        const res = await fetch(
-          `/api/admin/listings/${confirmState.listing._id}/active`,
-          {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ isActive: !confirmState.listing.isActive }),
-          }
-        );
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.message || "Failed to update listing");
-        }
-      } else if (confirmState.action === "delete") {
+      if (confirmState.action === "delete") {
         const res = await fetch(
           `/api/admin/listings/${confirmState.listing._id}`,
           {
@@ -317,6 +349,31 @@ export default function Properties() {
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           throw new Error(data.message || "Failed to delete listing");
+        }
+      } else {
+        const actionToStatus = {
+          approve: "active",
+          activate: "active",
+          reapprove: "active",
+          decline: "declined",
+          deactivate: "inactive",
+        };
+        const nextStatus = actionToStatus[confirmState.action];
+        if (!nextStatus) {
+          throw new Error("Unsupported listing action");
+        }
+
+        const res = await fetch(
+          `/api/admin/listings/${confirmState.listing._id}/status`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: nextStatus }),
+          }
+        );
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.message || "Failed to update listing status");
         }
       }
 
@@ -336,6 +393,10 @@ export default function Properties() {
       navigator.clipboard.writeText(value).catch(() => {});
     }
   };
+
+  const selectedListingStatus = selectedListing
+    ? getListingStatusMeta(selectedListing, filters.status)
+    : null;
 
   return (
     <div className="space-y-6">
@@ -367,9 +428,9 @@ export default function Properties() {
             </div>
           )}
 
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
             {summaryLoading
-              ? Array.from({ length: 4 }).map((_, index) => (
+              ? Array.from({ length: 5 }).map((_, index) => (
                   <Card
                     key={`summary-skeleton-${index}`}
                     className="border-none bg-white/70 shadow-lg shadow-slate-200/60 animate-pulse"
@@ -391,10 +452,27 @@ export default function Properties() {
                       "from-indigo-500/20 to-indigo-100/40 text-indigo-600",
                   },
                   {
-                    key: "active",
-                    label: "Active",
-                    value: summary?.active ?? 0,
-                    note: "Currently discoverable",
+                    key: "pending",
+                    label: "Pending approval",
+                    value: summary?.pending ?? 0,
+                    note: "Awaiting admin review",
+                    accent: "from-amber-500/20 to-amber-100/40 text-amber-600",
+                  },
+                  {
+                    key: "acceptedRatio",
+                    label: "Accepted vs Declined",
+                    value:
+                      summary?.accepted ??
+                      (typeof summary?.active === "number"
+                        ? summary.active
+                        : 0),
+                    displayValue: `${numberFormatter.format(
+                      summary?.accepted ??
+                        (typeof summary?.active === "number"
+                          ? summary.active
+                          : 0)
+                    )}/${numberFormatter.format(summary?.declined ?? 0)}`,
+                    note: "Accepted / Declined",
                     accent:
                       "from-emerald-500/20 to-emerald-100/40 text-emerald-600",
                   },
@@ -402,7 +480,7 @@ export default function Properties() {
                     key: "inactive",
                     label: "Inactive",
                     value: summary?.inactive ?? 0,
-                    note: "Hidden until reactivated",
+                    note: "Hidden but not declined",
                     accent: "from-slate-500/20 to-slate-100/40 text-slate-600",
                   },
                   {
@@ -410,7 +488,7 @@ export default function Properties() {
                     label: "On offer",
                     value: summary?.offers ?? 0,
                     note: "Promoted with incentives",
-                    accent: "from-amber-500/20 to-amber-100/40 text-amber-600",
+                    accent: "from-sky-500/20 to-sky-100/40 text-sky-600",
                   },
                 ].map((metric) => (
                   <Card
@@ -426,7 +504,11 @@ export default function Properties() {
                         {metric.label}
                       </CardDescription>
                       <CardTitle className="mt-4 text-3xl font-bold text-slate-900">
-                        {numberFormatter.format(metric.value)}
+                        {metric.displayValue
+                          ? metric.displayValue
+                          : typeof metric.value === "number"
+                          ? numberFormatter.format(metric.value)
+                          : metric.value}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="relative z-10 pt-0">
@@ -584,112 +666,171 @@ export default function Properties() {
                         </TD>
                       </TR>
                     ) : (
-                      listings.map((listing) => (
-                        <TR key={listing._id} className="bg-white/50">
-                          <TD>
-                            <div className="h-16 w-24 overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
-                              {listing.imageUrls?.[0] ? (
-                                <img
-                                  src={listing.imageUrls[0]}
-                                  alt={listing.name}
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                <div className="flex h-full w-full items-center justify-center text-[11px] text-slate-500">
-                                  No image
-                                </div>
-                              )}
-                            </div>
-                          </TD>
-                          <TD className="max-w-[220px] font-medium text-slate-900">
-                            <div className="truncate" title={listing.name}>
-                              {listing.name}
-                            </div>
-                            <div className="mt-1 text-xs text-slate-500">
-                              {listing.address || "Address hidden"}
-                            </div>
-                          </TD>
-                          <TD className="align-top text-xs text-slate-500">
-                            <button
-                              type="button"
-                              onClick={() => copyToClipboard(listing.userRef)}
-                              className="font-mono text-[11px] text-indigo-600 hover:underline"
-                            >
-                              {listing.userRef || "—"}
-                            </button>
-                          </TD>
-                          <TD className="text-sm font-semibold text-slate-900">
-                            <div>
-                              {currencyFormatter.format(
-                                listing.regularPrice || 0
-                              )}
-                            </div>
-                            {listing.offer && listing.discountPrice ? (
-                              <div className="text-xs text-emerald-600">
-                                Offer:{" "}
-                                {currencyFormatter.format(
-                                  listing.discountPrice
+                      listings.map((listing) => {
+                        const { status, label, badge } = getListingStatusMeta(
+                          listing,
+                          filters.status
+                        );
+                        const badgeClassName = [
+                          "capitalize",
+                          badge?.className || "",
+                        ]
+                          .join(" ")
+                          .trim();
+
+                        return (
+                          <TR key={listing._id} className="bg-white/50">
+                            <TD>
+                              <div className="h-16 w-24 overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+                                {listing.imageUrls?.[0] ? (
+                                  <img
+                                    src={listing.imageUrls[0]}
+                                    alt={listing.name}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex h-full w-full items-center justify-center text-[11px] text-slate-500">
+                                    No image
+                                  </div>
                                 )}
                               </div>
-                            ) : (
-                              <div className="text-xs text-slate-500">
-                                No offer
+                            </TD>
+                            <TD className="max-w-[220px] font-medium text-slate-900">
+                              <div className="truncate" title={listing.name}>
+                                {listing.name}
                               </div>
-                            )}
-                          </TD>
-                          <TD>
-                            <Badge variant="outline" className="capitalize">
-                              {listing.type || "—"}
-                            </Badge>
-                          </TD>
-                          <TD>
-                            <div className="flex flex-col gap-1">
-                              <Badge
-                                variant={
-                                  listing.isActive ? "success" : "outline"
-                                }
+                              <div className="mt-1 text-xs text-slate-500">
+                                {listing.address || "Address hidden"}
+                              </div>
+                            </TD>
+                            <TD className="align-top text-xs text-slate-500">
+                              <button
+                                type="button"
+                                onClick={() => copyToClipboard(listing.userRef)}
+                                className="font-mono text-[11px] text-indigo-600 hover:underline"
                               >
-                                {listing.isActive ? "Active" : "Inactive"}
-                              </Badge>
-                              {listing.offer && (
-                                <Badge className="bg-amber-100 text-amber-700">
-                                  Offer
-                                </Badge>
+                                {listing.userRef || "—"}
+                              </button>
+                            </TD>
+                            <TD className="text-sm font-semibold text-slate-900">
+                              <div>
+                                {currencyFormatter.format(
+                                  listing.regularPrice || 0
+                                )}
+                              </div>
+                              {listing.offer && listing.discountPrice ? (
+                                <div className="text-xs text-emerald-600">
+                                  Offer:{" "}
+                                  {currencyFormatter.format(
+                                    listing.discountPrice
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="text-xs text-slate-500">
+                                  No offer
+                                </div>
                               )}
-                            </div>
-                          </TD>
-                          <TD>
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                className="rounded-lg"
-                                onClick={() => setSelectedListing(listing)}
-                              >
-                                View
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant={
-                                  listing.isActive ? "outline" : "success"
-                                }
-                                className="rounded-lg"
-                                onClick={() => openConfirm(listing, "toggle")}
-                              >
-                                {listing.isActive ? "Deactivate" : "Activate"}
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                className="rounded-lg"
-                                onClick={() => openConfirm(listing, "delete")}
-                              >
-                                Delete
-                              </Button>
-                            </div>
-                          </TD>
-                        </TR>
-                      ))
+                            </TD>
+                            <TD>
+                              <Badge variant="outline" className="capitalize">
+                                {listing.type || "—"}
+                              </Badge>
+                            </TD>
+                            <TD>
+                              <div className="flex flex-col gap-1">
+                                <Badge
+                                  variant={badge?.variant || "outline"}
+                                  className={badgeClassName || undefined}
+                                >
+                                  {label}
+                                </Badge>
+                                {listing.offer && (
+                                  <Badge className="bg-amber-100 text-amber-700">
+                                    Offer
+                                  </Badge>
+                                )}
+                              </div>
+                            </TD>
+                            <TD>
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  className="rounded-lg"
+                                  onClick={() => setSelectedListing(listing)}
+                                >
+                                  View
+                                </Button>
+                                {status === "pending" ? (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="success"
+                                      className="rounded-lg"
+                                      onClick={() =>
+                                        openConfirm(listing, "approve")
+                                      }
+                                    >
+                                      Approve
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="rounded-lg"
+                                      onClick={() =>
+                                        openConfirm(listing, "decline")
+                                      }
+                                    >
+                                      Decline
+                                    </Button>
+                                  </>
+                                ) : status === "declined" ? (
+                                  <Button
+                                    size="sm"
+                                    variant="success"
+                                    className="rounded-lg"
+                                    onClick={() =>
+                                      openConfirm(listing, "reapprove")
+                                    }
+                                  >
+                                    Reapprove
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant={
+                                      status === "active"
+                                        ? "outline"
+                                        : "success"
+                                    }
+                                    className="rounded-lg"
+                                    onClick={() =>
+                                      openConfirm(
+                                        listing,
+                                        status === "active"
+                                          ? "deactivate"
+                                          : "activate"
+                                      )
+                                    }
+                                  >
+                                    {status === "active"
+                                      ? "Deactivate"
+                                      : "Activate"}
+                                  </Button>
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  className="rounded-lg"
+                                  onClick={() => openConfirm(listing, "delete")}
+                                >
+                                  Delete
+                                </Button>
+                              </div>
+                            </TD>
+                          </TR>
+                        );
+                      })
                     )}
                   </TBody>
                 </Table>
@@ -752,10 +893,15 @@ export default function Properties() {
             <section className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 px-5 py-4">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge
-                  variant={selectedListing.isActive ? "success" : "outline"}
-                  className="rounded-full"
+                  variant={selectedListingStatus?.badge?.variant || "outline"}
+                  className={[
+                    "rounded-full",
+                    selectedListingStatus?.badge?.className || "",
+                  ]
+                    .join(" ")
+                    .trim()}
                 >
-                  {selectedListing.isActive ? "Active" : "Inactive"}
+                  {selectedListingStatus?.label || "Inactive"}
                 </Badge>
                 <Badge className="rounded-full bg-slate-200/70 text-slate-700">
                   {selectedListing.type}
