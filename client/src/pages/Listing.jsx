@@ -40,7 +40,8 @@ export default function Listing() {
         setListing(data);
         setLoading(false);
         setError(false);
-      } catch (error) {
+      } catch (err) {
+        console.error("Failed to load listing details", err);
         setError(true);
         setLoading(false);
       }
@@ -68,6 +69,87 @@ export default function Listing() {
         ).toLocaleString("en-US")
       : null;
   const isRental = listing?.type === "rent";
+  const neighbourhoodAnchor = listing?.address
+    ? listing.address.split(",")[0]
+    : "the neighbourhood";
+  const formatStatusLabel = (status) =>
+    status
+      ? status
+          .split(" ")
+          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(" ")
+      : "Active";
+  const highlightInsights = listing
+    ? [
+        {
+          title: isRental ? "Move-in ready comfort" : "Presentation perfect",
+          description: listing.furnished
+            ? "Professionally staged and fully furnished so every room feels intentional from day one."
+            : "Neutral finishes create a blank canvas ready for your signature style and furnishings.",
+        },
+        {
+          title: listing.parking
+            ? "Secure on-site parking"
+            : "Easy neighbourhood parking",
+          description: listing.parking
+            ? "Dedicated parking keeps arrivals effortless for residents and guests alike."
+            : "Well-connected transit and nearby public parking make getting around simple without a driveway.",
+        },
+        listing.offer && discountAmount
+          ? {
+              title: "Exclusive savings unlocked",
+              description: `Claim a limited-time incentive worth $${discountAmount} to maximise your budget.`,
+            }
+          : null,
+        {
+          title: "Prime lifestyle location",
+          description:
+            "Surrounded by everyday conveniences, cafes, and green spaces so you spend less time commuting and more time living.",
+        },
+      ].filter(Boolean)
+    : [];
+
+  const keyFacts = listing
+    ? [
+        {
+          label: "Market availability",
+          value: formatStatusLabel(listing.status),
+        },
+        {
+          label: isRental ? "Monthly rate" : "Asking price",
+          value: displayPrice ? `$${displayPrice}` : "Upon request",
+        },
+        listing.offer && formattedRegularPrice
+          ? {
+              label: "Original price",
+              value: `$${formattedRegularPrice}`,
+            }
+          : null,
+        {
+          label: "Home type",
+          value:
+            listing.type === "rent" ? "Residential lease" : "Residential sale",
+        },
+      ].filter(Boolean)
+    : [];
+
+  const nextSteps = [
+    {
+      title: "Request a tailored tour",
+      description:
+        "Share your availability and preferred format (virtual or in-person) so our advisor can craft a personalised viewing plan.",
+    },
+    {
+      title: "Review supporting documents",
+      description:
+        "Ask for floor plans, utility breakdowns, and HOA disclosures to evaluate the property with confidence before you commit.",
+    },
+    {
+      title: "Align on next actions",
+      description:
+        "From drafting offers to completing tenant applications, our specialists stay beside you every step of the way.",
+    },
+  ];
   const handleGoBack = () => {
     if (window.history.length > 1) {
       navigate(-1);
@@ -91,15 +173,72 @@ export default function Listing() {
       {listing && !loading && !error && (
         <div className="pb-20">
           <div className="relative">
-            <Swiper navigation className="h-[460px] w-full">
+            <Swiper
+              navigation
+              className="h-[520px] w-full"
+              style={{
+                "--swiper-navigation-color": "#34d399",
+                "--swiper-navigation-size": "22px",
+              }}
+            >
               {listing.imageUrls.map((url) => (
                 <SwiperSlide key={url}>
-                  <div
-                    className="h-full w-full"
-                    style={{
-                      background: `linear-gradient(120deg, rgba(15,23,42,0.15), rgba(15,23,42,0.45)), url(${url}) center / cover no-repeat`,
-                    }}
-                  />
+                  <div className="relative h-full w-full overflow-hidden">
+                    <div
+                      className="absolute inset-0"
+                      style={{
+                        background: `linear-gradient(115deg, rgba(15,23,42,0.82) 8%, rgba(15,23,42,0.2) 55%, rgba(15,23,42,0.7) 100%), url(${url}) center / cover no-repeat`,
+                      }}
+                    />
+                    <div className="relative flex h-full flex-col justify-between px-6 py-8 text-white sm:px-10 sm:py-12 lg:px-16 lg:py-16">
+                      <div className="max-w-2xl space-y-4 sm:space-y-6">
+                        <span className="inline-flex w-fit items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-emerald-200">
+                          {listing.offer
+                            ? "Exclusive offer"
+                            : isRental
+                            ? "Featured rental"
+                            : "Featured home"}
+                        </span>
+                        <div className="space-y-3">
+                          <h2 className="text-3xl font-semibold leading-tight sm:text-4xl lg:text-5xl">
+                            {listing.name}
+                          </h2>
+                          <p className="text-sm text-white/85 sm:text-base lg:text-lg line-clamp-3">
+                            {listing.description}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-white/85 sm:text-base">
+                        {displayPrice && (
+                          <span className="rounded-full bg-white/15 px-5 py-2 font-medium text-white">
+                            {`$${displayPrice}`}
+                            {isRental ? " / month" : ""}
+                          </span>
+                        )}
+                        {listing.address && (
+                          <span className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-white/80">
+                            <FaMapMarkerAlt className="h-4 w-4 text-emerald-300" />
+                            {listing.address}
+                          </span>
+                        )}
+                        <div className="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-[0.25em] text-white/70 sm:text-sm">
+                          <span className="rounded-full bg-white/10 px-3 py-1">
+                            {listing.bedrooms}{" "}
+                            {listing.bedrooms > 1 ? "beds" : "bed"}
+                          </span>
+                          <span className="rounded-full bg-white/10 px-3 py-1">
+                            {listing.bathrooms}{" "}
+                            {listing.bathrooms > 1 ? "baths" : "bath"}
+                          </span>
+                          <span className="rounded-full bg-white/10 px-3 py-1">
+                            {listing.parking
+                              ? "Parking included"
+                              : "Street parking"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </SwiperSlide>
               ))}
             </Swiper>
@@ -134,7 +273,7 @@ export default function Listing() {
                 className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:text-emerald-600"
               >
                 <span aria-hidden="true">←</span>
-                <span>Back to listings</span>
+                <span>Back right</span>
               </button>
             </div>
             <div className="rounded-[32px] border border-emerald-100/80 bg-white p-8 shadow-2xl shadow-emerald-100/60 sm:p-10">
@@ -209,6 +348,84 @@ export default function Listing() {
                       </li>
                     </ul>
                   </div>
+
+                  <div className="grid gap-6 lg:grid-cols-2">
+                    <div className="rounded-2xl border border-emerald-100/80 bg-white/70 p-6 shadow-lg shadow-emerald-50">
+                      <h3 className="text-sm font-semibold uppercase tracking-[0.35em] text-emerald-700">
+                        Why residents love this home
+                      </h3>
+                      <ul className="mt-4 space-y-4 text-sm text-slate-700">
+                        {highlightInsights.map((item) => (
+                          <li key={item.title} className="flex gap-3">
+                            <span className="mt-1 inline-flex h-2 w-2 shrink-0 rounded-full bg-emerald-400" />
+                            <div>
+                              <p className="font-semibold text-slate-900">
+                                {item.title}
+                              </p>
+                              <p className="text-slate-600">
+                                {item.description}
+                              </p>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200/80 bg-white/85 p-6 shadow-lg">
+                      <h3 className="text-sm font-semibold uppercase tracking-[0.35em] text-slate-600">
+                        Neighbourhood snapshot
+                      </h3>
+                      <p className="mt-3 text-sm text-slate-600">
+                        Nestled near {neighbourhoodAnchor}, this area mixes
+                        residential calm with quick access to dining, fitness,
+                        and everyday services. Morning commutes are effortless
+                        thanks to direct transit corridors, while weekends
+                        invite you to explore boutique shops and nearby parks.
+                      </p>
+                      <p className="mt-3 text-xs text-slate-500">
+                        *Neighbourhood insights are curated by Binio's Estate
+                        market research team and updated quarterly.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200/70 bg-slate-50/70 p-6 shadow-inner">
+                    <h3 className="text-sm font-semibold uppercase tracking-[0.35em] text-slate-600">
+                      Key facts & next steps
+                    </h3>
+                    <div className="mt-4 grid gap-6 lg:grid-cols-2">
+                      <ul className="space-y-3 text-sm text-slate-700">
+                        {keyFacts.map((fact) => (
+                          <li
+                            key={fact.label}
+                            className="flex items-start justify-between gap-4 rounded-xl border border-white/60 bg-white px-4 py-3 shadow"
+                          >
+                            <span className="text-xs uppercase tracking-[0.3em] text-slate-400">
+                              {fact.label}
+                            </span>
+                            <span className="font-semibold text-slate-900">
+                              {fact.value}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                      <ul className="space-y-4 text-sm text-slate-600">
+                        {nextSteps.map((item) => (
+                          <li
+                            key={item.title}
+                            className="rounded-xl border border-emerald-100 bg-white/80 px-4 py-3 shadow"
+                          >
+                            <p className="font-semibold text-slate-900">
+                              {item.title}
+                            </p>
+                            <p className="mt-1 text-slate-600">
+                              {item.description}
+                            </p>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
                 </article>
 
                 <aside className="space-y-6">
@@ -248,6 +465,31 @@ export default function Listing() {
                         </p>
                       )}
                     </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-emerald-100 bg-white/90 p-6 shadow-lg shadow-emerald-100">
+                    <h3 className="text-sm font-semibold uppercase tracking-[0.35em] text-emerald-600">
+                      Work with a specialist
+                    </h3>
+                    <p className="mt-3 text-sm text-slate-600">
+                      Our licensed advisors prepare data-backed proposals, run
+                      rent vs. buy comparisons, and coordinate legal paperwork
+                      so you can move forward with certainty.
+                    </p>
+                    <ul className="mt-4 space-y-3 text-sm text-slate-700">
+                      <li className="flex items-center gap-2">
+                        <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                        Tailored financial scenarios and rate guidance
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                        Priority access to upcoming listings in the area
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                        Coordination with trusted inspectors and movers
+                      </li>
+                    </ul>
                   </div>
 
                   {currentUser &&
