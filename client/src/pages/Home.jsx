@@ -214,7 +214,7 @@ export default function Home() {
   const primaryCta = isAuthenticated
     ? isAdmin
       ? { label: "View admin profile", link: "/admin/profile" }
-      : { label: "View your profile", link: "/profile" }
+      : { label: "View your profile", link: "/account/profile" }
     : { label: "Create your account", link: "/sign-up" };
   const secondaryCta = isAuthenticated
     ? isAdmin

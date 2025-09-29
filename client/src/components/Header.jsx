@@ -49,6 +49,12 @@ export default function Header() {
       label: "Admin",
       match: (path) => path.startsWith("/admin"),
     });
+  } else if (currentUser) {
+    primaryLinks.push({
+      to: "/account",
+      label: "User",
+      match: (path) => path.startsWith("/account"),
+    });
   }
 
   const isLinkActive = (link) =>
@@ -215,7 +221,7 @@ export default function Header() {
               )}
             </button>
             <Link
-              to={currentUser ? "/create-listing" : "/sign-in"}
+              to={currentUser ? "/account/create-listing" : "/sign-in"}
               className="hidden items-center gap-2 rounded-full bg-gradient-to-r from-green-300 via-emerald-500 to-emerald-600 px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg shadow-emerald-500/25 transition hover:from-green-200 hover:via-emerald-400 hover:to-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200 focus-visible:ring-offset-2 focus-visible:ring-offset-[#2c3b4f] dark:focus-visible:ring-offset-slate-900 md:inline-flex"
             >
               <span>List a Property</span>
@@ -264,23 +270,27 @@ export default function Header() {
                       )}
                     </div>
                     <div className="flex flex-col py-1">
-                      {currentUser.isAdmin && (
-                        <button
-                          onClick={() => handleNavigate("/admin")}
-                          className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100/70 dark:text-slate-200 dark:hover:bg-slate-700"
-                          role="menuitem"
-                        >
-                          <FiGrid
-                            className="text-base text-green-500"
-                            aria-hidden="true"
-                          />
-                          <span>Dashboard</span>
-                        </button>
-                      )}
                       <button
                         onClick={() =>
                           handleNavigate(
-                            currentUser.isAdmin ? "/admin/profile" : "/profile"
+                            currentUser.isAdmin ? "/admin" : "/account"
+                          )
+                        }
+                        className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100/70 dark:text-slate-200 dark:hover:bg-slate-700"
+                        role="menuitem"
+                      >
+                        <FiGrid
+                          className="text-base text-green-500"
+                          aria-hidden="true"
+                        />
+                        <span>Dashboard</span>
+                      </button>
+                      <button
+                        onClick={() =>
+                          handleNavigate(
+                            currentUser.isAdmin
+                              ? "/admin/profile"
+                              : "/account/profile"
                           )
                         }
                         className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100/70 dark:text-slate-200 dark:hover:bg-slate-700"
@@ -336,7 +346,7 @@ export default function Header() {
               })}
             </div>
             <Link
-              to={currentUser ? "/create-listing" : "/sign-in"}
+              to={currentUser ? "/account/create-listing" : "/sign-in"}
               className="inline-flex shrink-0 items-center gap-1 rounded-full border border-green-400/70 px-3 py-1.5 text-xs font-semibold text-green-200 transition hover:border-green-300 hover:text-white md:hidden"
             >
               List

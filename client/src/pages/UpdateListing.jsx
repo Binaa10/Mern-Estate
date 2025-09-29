@@ -40,7 +40,7 @@ export default function CreateListing() {
     if (window.history.length > 1) {
       navigate(-1);
     } else {
-      navigate("/profile");
+      navigate("/account/profile");
     }
   };
 

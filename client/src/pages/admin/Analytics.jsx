@@ -163,7 +163,7 @@ export default function Analytics() {
         let message;
         try {
           message = raw ? JSON.parse(raw).message : undefined;
-        } catch (err) {
+        } catch {
           message = undefined;
         }
         throw new Error(
@@ -176,7 +176,7 @@ export default function Analytics() {
       if (!raw) return {};
       try {
         return JSON.parse(raw);
-      } catch (err) {
+      } catch {
         throw new Error(`Invalid JSON received for ${context}`);
       }
     };

@@ -1,9 +1,8 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import "./index.css";
 import Home from "./pages/Home";
 import About from "./pages/About";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
-import Profile from "./pages/Profile";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 import Header from "./components/Header";
@@ -24,6 +23,10 @@ import AdminProfile from "./pages/admin/AdminProfile.jsx";
 import AdminLayout from "./pages/admin/AdminLayout.jsx";
 import AdminCreateListing from "./pages/admin/AdminCreateListing.jsx";
 import AdminMyListings from "./pages/admin/AdminMyListings.jsx";
+import UserLayout from "./pages/user/UserLayout.jsx";
+import UserDashboard from "./pages/user/UserDashboard.jsx";
+import UserMyListings from "./pages/user/UserMyListings.jsx";
+import UserProfile from "./pages/user/UserProfile.jsx";
 
 export default function App() {
   return (
@@ -40,8 +43,20 @@ export default function App() {
         <Route path="listing/:listingId" element={<Listing />}></Route>
         <Route path="/search" element={<Search />}></Route>
         <Route element={<PrivateRoute />}>
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/create-listing" element={<CreateListing />} />
+          <Route path="/account" element={<UserLayout />}>
+            <Route index element={<UserDashboard />} />
+            <Route path="create-listing" element={<CreateListing />} />
+            <Route path="my-listings" element={<UserMyListings />} />
+            <Route path="profile" element={<UserProfile />} />
+          </Route>
+          <Route
+            path="/profile"
+            element={<Navigate to="/account/profile" replace />}
+          />
+          <Route
+            path="/create-listing"
+            element={<Navigate to="/account/create-listing" replace />}
+          />
           <Route
             path="/update-listing/:listingId"
             element={<UpdateListing />}
