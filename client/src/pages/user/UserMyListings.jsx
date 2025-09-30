@@ -12,6 +12,7 @@ import { Table, THead, TBody, TR, TH, TD } from "../../components/ui/table";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
 import { Dialog } from "../../components/ui/dialog";
+import { getListingStatusMeta } from "../../utils/listingStatus";
 
 export default function UserMyListings() {
   const { currentUser } = useSelector((state) => state.user);
@@ -157,9 +158,15 @@ export default function UserMyListings() {
   };
 
   return (
-    <div className="space-y-6">
+    <div
+      className="mx-auto w-full max-w-6xl space-y-6 px-3 sm:px-4 lg:px-6"
+      style={{
+        paddingTop: "max(1.5rem, env(safe-area-inset-top))",
+        paddingBottom: "max(2rem, env(safe-area-inset-bottom))",
+      }}
+    >
       <section className="overflow-hidden rounded-3xl border border-slate-200/70 bg-white shadow-xl">
-        <div className="flex flex-col gap-6 p-8">
+        <div className="flex flex-col gap-6 p-5 sm:p-7 lg:p-8">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-slate-400">
               Your workspace
@@ -180,7 +187,7 @@ export default function UserMyListings() {
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
             {loading && listings.length === 0
               ? Array.from({ length: 5 }).map((_, index) => (
                   <Card
@@ -235,7 +242,7 @@ export default function UserMyListings() {
       )}
 
       <Card className="border-slate-200/70 shadow-md">
-        <CardHeader className="flex flex-col gap-3 rounded-2xl bg-slate-50/60 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+        <CardHeader className="flex flex-col gap-3 rounded-2xl bg-slate-50/60 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-5">
           <div>
             <CardTitle className="text-xl font-semibold text-slate-900">
               Your listings
@@ -246,7 +253,7 @@ export default function UserMyListings() {
           </div>
           <Button
             onClick={() => navigate("/account/create-listing")}
-            className="rounded-xl px-5 py-2.5"
+            className="w-full rounded-xl px-5 py-2.5 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 sm:w-auto"
           >
             Create new listing
           </Button>
@@ -261,87 +268,84 @@ export default function UserMyListings() {
               You haven't created any listings yet.
             </div>
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-slate-200">
-              <Table className="bg-white text-sm">
-                <THead>
-                  <TR className="bg-slate-50 text-slate-600">
-                    <TH className="w-[110px]">Image</TH>
-                    <TH className="w-[220px]">Name</TH>
-                    <TH>Created</TH>
-                    <TH>Status</TH>
-                    <TH>Price</TH>
-                    <TH className="text-right">Actions</TH>
-                  </TR>
-                </THead>
-                <TBody>
-                  {listings.map((listing) => (
-                    <TR key={listing._id} className="bg-white/60">
-                      <TD>
-                        <div className="h-14 w-20 overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
-                          {listing.imageUrls?.[0] ? (
-                            <img
-                              src={listing.imageUrls[0]}
-                              alt={listing.name}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center text-[11px] text-slate-400">
-                              No image
-                            </div>
-                          )}
+            <div className="space-y-5">
+              <div className="space-y-4 lg:hidden">
+                {listings.map((listing) => {
+                  const { label, badge } = getListingStatusMeta(listing);
+                  const statusBadgeVariant = badge?.variant || "outline";
+                  const statusBadgeClass = ["rounded-full", badge?.className]
+                    .filter(Boolean)
+                    .join(" ");
+
+                  return (
+                    <article
+                      key={listing._id}
+                      className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-within:outline focus-within:outline-2 focus-within:outline-emerald-500"
+                    >
+                      <div className="flex flex-col gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="h-20 w-24 flex-shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+                            {listing.imageUrls?.[0] ? (
+                              <img
+                                src={listing.imageUrls[0]}
+                                alt={listing.name}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center text-[11px] text-slate-400">
+                                No image
+                              </div>
+                            )}
+                          </div>
+                          <div className="min-w-0 space-y-1">
+                            <Link
+                              to={`/listing/${listing._id}`}
+                              className="block truncate text-base font-semibold text-slate-900 underline-offset-2 hover:text-emerald-600 hover:underline"
+                            >
+                              {listing.name}
+                            </Link>
+                            <p className="truncate text-xs text-slate-500">
+                              {listing.address || "Address hidden"}
+                            </p>
+                            <p className="text-xs text-slate-400">
+                              {listing.createdAt
+                                ? new Date(
+                                    listing.createdAt
+                                  ).toLocaleDateString()
+                                : "—"}
+                            </p>
+                          </div>
                         </div>
-                      </TD>
-                      <TD className="max-w-[220px] align-top">
-                        <div className="flex flex-col gap-1">
-                          <Link
-                            to={`/listing/${listing._id}`}
-                            className="truncate text-sm font-semibold text-slate-900 hover:text-indigo-600 hover:underline"
-                          >
-                            {listing.name}
-                          </Link>
-                          <span className="truncate text-xs text-slate-500">
-                            {listing.address || "Address hidden"}
-                          </span>
-                        </div>
-                      </TD>
-                      <TD className="text-sm text-slate-500">
-                        {listing.createdAt
-                          ? new Date(listing.createdAt).toLocaleDateString()
-                          : "—"}
-                      </TD>
-                      <TD>
-                        <div className="flex flex-col gap-1">
+
+                        <div className="flex flex-wrap items-center gap-2 text-xs">
                           <Badge
-                            variant={
-                              listing.isActive !== false ? "success" : "outline"
-                            }
-                            className="w-fit"
+                            variant={statusBadgeVariant}
+                            className={statusBadgeClass}
                           >
-                            {listing.isActive !== false ? "Active" : "Inactive"}
+                            {label}
                           </Badge>
                           {listing.offer && (
-                            <Badge className="w-fit bg-amber-100 text-amber-700">
+                            <Badge className="rounded-full bg-amber-100 text-amber-700">
                               Offer
                             </Badge>
                           )}
+                          <span className="ml-auto text-sm font-semibold text-slate-900">
+                            ${listing.regularPrice?.toLocaleString() || "—"}
+                          </span>
                         </div>
-                      </TD>
-                      <TD className="text-sm font-semibold text-slate-900">
-                        ${listing.regularPrice?.toLocaleString() || "—"}
-                      </TD>
-                      <TD>
-                        <div className="flex justify-end gap-2">
+
+                        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                           <Button
                             size="sm"
-                            className="rounded-lg"
+                            className="min-h-11 flex-1 rounded-xl px-4 text-sm !bg-slate-900 !text-white hover:!bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400"
                             onClick={() => navigate(`/listing/${listing._id}`)}
                           >
-                            View
+                            View listing
                           </Button>
                           <Button
                             variant="success"
                             size="sm"
-                            className="rounded-lg"
+                            className="min-h-11 flex-1 rounded-xl px-4 text-sm"
                             onClick={() =>
                               navigate(`/update-listing/${listing._id}`)
                             }
@@ -351,26 +355,155 @@ export default function UserMyListings() {
                           <Button
                             variant="destructive"
                             size="sm"
-                            className="rounded-lg"
-                            onClick={() =>
-                              setConfirm({ open: true, listing: listing })
-                            }
+                            className="relative z-10 min-h-11 flex-1 rounded-xl px-4 text-sm !bg-red-600 !text-white hover:!bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
+                            onClick={() => setConfirm({ open: true, listing })}
                           >
                             Delete
                           </Button>
                         </div>
-                      </TD>
-                    </TR>
-                  ))}
-                </TBody>
-              </Table>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              <div className="hidden rounded-2xl border border-slate-200 bg-white shadow-inner shadow-slate-100 lg:block">
+                <div className="relative">
+                  <div
+                    className="pointer-events-none absolute inset-y-0 right-0 hidden w-16 bg-gradient-to-l from-white via-white/70 to-transparent lg:flex lg:z-0"
+                    aria-hidden="true"
+                  />
+                  <div className="relative max-w-full overflow-x-auto">
+                    <Table className="relative z-10 min-w-[720px] text-sm">
+                      <THead>
+                        <TR className="bg-slate-50 text-slate-600">
+                          <TH scope="col" className="w-[110px]">
+                            Image
+                          </TH>
+                          <TH scope="col" className="w-[220px]">
+                            Name
+                          </TH>
+                          <TH scope="col">Created</TH>
+                          <TH scope="col">Status</TH>
+                          <TH scope="col">Price</TH>
+                          <TH scope="col" className="relative z-10 text-right">
+                            Actions
+                          </TH>
+                        </TR>
+                      </THead>
+                      <TBody>
+                        {listings.map((listing) => {
+                          const { label, badge } =
+                            getListingStatusMeta(listing);
+                          const statusBadgeVariant =
+                            badge?.variant || "outline";
+                          const statusBadgeClass = ["w-fit", badge?.className]
+                            .filter(Boolean)
+                            .join(" ");
+
+                          return (
+                            <TR key={listing._id} className="bg-white/60">
+                              <TD>
+                                <div className="h-14 w-20 overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+                                  {listing.imageUrls?.[0] ? (
+                                    <img
+                                      src={listing.imageUrls[0]}
+                                      alt={listing.name}
+                                      className="h-full w-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="flex h-full w-full items-center justify-center text-[11px] text-slate-400">
+                                      No image
+                                    </div>
+                                  )}
+                                </div>
+                              </TD>
+                              <TD className="max-w-[220px] align-top">
+                                <div className="flex flex-col gap-1">
+                                  <Link
+                                    to={`/listing/${listing._id}`}
+                                    className="truncate text-sm font-semibold text-slate-900 underline-offset-2 hover:text-emerald-600 hover:underline"
+                                  >
+                                    {listing.name}
+                                  </Link>
+                                  <span className="truncate text-xs text-slate-500">
+                                    {listing.address || "Address hidden"}
+                                  </span>
+                                </div>
+                              </TD>
+                              <TD className="text-sm text-slate-500">
+                                {listing.createdAt
+                                  ? new Date(
+                                      listing.createdAt
+                                    ).toLocaleDateString()
+                                  : "—"}
+                              </TD>
+                              <TD>
+                                <div className="flex flex-col gap-1">
+                                  <Badge
+                                    variant={statusBadgeVariant}
+                                    className={statusBadgeClass}
+                                  >
+                                    {label}
+                                  </Badge>
+                                  {listing.offer && (
+                                    <Badge className="w-fit bg-amber-100 text-amber-700">
+                                      Offer
+                                    </Badge>
+                                  )}
+                                </div>
+                              </TD>
+                              <TD className="text-sm font-semibold text-slate-900">
+                                ${listing.regularPrice?.toLocaleString() || "—"}
+                              </TD>
+                              <TD className="relative z-10">
+                                <div className="flex justify-end gap-2">
+                                  <Button
+                                    size="sm"
+                                    className="relative z-10 min-h-11 rounded-lg px-4 !bg-slate-900 !text-white hover:!bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400"
+                                    onClick={() =>
+                                      navigate(`/listing/${listing._id}`)
+                                    }
+                                  >
+                                    View
+                                  </Button>
+                                  <Button
+                                    variant="success"
+                                    size="sm"
+                                    className="min-h-11 rounded-lg px-4"
+                                    onClick={() =>
+                                      navigate(`/update-listing/${listing._id}`)
+                                    }
+                                  >
+                                    Edit
+                                  </Button>
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    className="relative z-10 min-h-11 rounded-lg px-4 !bg-red-600 !text-white hover:!bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
+                                    onClick={() =>
+                                      setConfirm({ open: true, listing })
+                                    }
+                                  >
+                                    Delete
+                                  </Button>
+                                </div>
+                              </TD>
+                            </TR>
+                          );
+                        })}
+                      </TBody>
+                    </Table>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </CardContent>
       </Card>
 
       <Card className="border-slate-200/70 shadow-md">
-        <CardHeader className="rounded-2xl bg-slate-50/70 px-6 py-5">
+        <CardHeader className="rounded-2xl bg-slate-50/70 px-5 py-4 sm:px-6 sm:py-5">
           <CardTitle className="text-xl font-semibold text-slate-900">
             Account snapshot
           </CardTitle>
@@ -378,7 +511,7 @@ export default function UserMyListings() {
             Quick glance at your profile
           </CardDescription>
         </CardHeader>
-        <CardContent className="px-6 py-6">
+        <CardContent className="px-5 py-5 sm:px-6 sm:py-6">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
               <div className="relative h-16 w-16 overflow-hidden rounded-full border border-slate-200 bg-slate-100 shadow-inner">
@@ -428,12 +561,13 @@ export default function UserMyListings() {
             <Button
               variant="outline"
               onClick={() => setConfirm({ open: false, listing: null })}
+              className="min-h-11 rounded-xl px-4"
             >
               Cancel
             </Button>
             <Button
               variant="default"
-              className="!bg-red-600 hover:!bg-red-700 text-white"
+              className="min-h-11 rounded-xl px-4 !bg-red-600 text-white hover:!bg-red-700"
               onClick={requestDelete}
             >
               Delete

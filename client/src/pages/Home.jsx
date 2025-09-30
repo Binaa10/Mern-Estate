@@ -246,25 +246,28 @@ export default function Home() {
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-3">
+              <div className="flex w-full flex-col gap-3 md:flex-row md:flex-wrap">
                 <Link
                   to="/search"
-                  className="inline-flex items-center justify-center rounded-full bg-emerald-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-200 transition hover:bg-emerald-400"
+                  className="inline-flex w-full items-center justify-center rounded-full bg-emerald-500 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-emerald-200 transition hover:bg-emerald-400 md:w-auto"
                 >
                   Browse listings
                 </Link>
                 <Link
                   to="/about"
-                  className="inline-flex items-center justify-center rounded-full border border-emerald-200 px-6 py-3 text-sm font-semibold text-emerald-600 transition hover:border-emerald-400 hover:text-emerald-500"
+                  className="inline-flex w-full items-center justify-center rounded-full border border-emerald-200 px-6 py-3.5 text-sm font-semibold text-emerald-600 transition hover:border-emerald-400 hover:text-emerald-500 md:w-auto"
                 >
                   Meet our advisors
                 </Link>
               </div>
 
-              <div className="mt-10 grid gap-6 border-t border-emerald-100 pt-6 sm:grid-cols-3">
+              <div className="mt-10 grid gap-6 border-t border-emerald-100 pt-6 md:grid-cols-3">
                 {heroStats.map(({ label, value }) => (
-                  <div key={label} className="space-y-1">
-                    <p className="text-3xl font-semibold text-slate-900">
+                  <div
+                    key={label}
+                    className="space-y-1 text-center md:text-left"
+                  >
+                    <p className="text-3xl font-semibold text-slate-900 sm:text-4xl">
                       {value}
                     </p>
                     <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-600">
@@ -295,7 +298,7 @@ export default function Home() {
                       <p className="text-sm text-slate-200 line-clamp-2">
                         {heroShowcase.description}
                       </p>
-                      <div className="flex flex-wrap items-center gap-4 text-sm">
+                      <div className="flex flex-col items-start gap-3 text-sm md:flex-row md:flex-wrap md:items-center md:gap-4">
                         <span className="rounded-full bg-white/10 px-4 py-1 font-medium">
                           {heroShowcasePrice !== null
                             ? `$${heroShowcasePrice.toLocaleString()}`
@@ -307,6 +310,12 @@ export default function Home() {
                             {heroShowcase.address}
                           </span>
                         )}
+                        <Link
+                          to={`/listing/${heroShowcase._id}`}
+                          className="inline-flex w-full items-center justify-center rounded-full bg-emerald-500 px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.3em] text-white shadow-lg shadow-emerald-400/30 transition hover:bg-emerald-400 md:w-auto"
+                        >
+                          View details
+                        </Link>
                       </div>
                     </div>
                   </>
@@ -324,7 +333,7 @@ export default function Home() {
                     </p>
                     <Link
                       to="/search"
-                      className="inline-flex w-fit items-center justify-center rounded-full bg-white px-6 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
+                      className="inline-flex w-full items-center justify-center rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-slate-900 transition hover:bg-slate-100 md:w-fit"
                     >
                       Discover listings
                     </Link>
@@ -334,7 +343,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {experienceHighlights.map((highlight) => {
               const IconComponent = highlight.icon;
               return (
@@ -357,7 +366,7 @@ export default function Home() {
       </section>
 
       <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
           <div className="space-y-4">
             <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-600">
               Start your journey
@@ -373,13 +382,13 @@ export default function Home() {
           </div>
           <Link
             to="/search"
-            className="inline-flex w-fit items-center justify-center rounded-full border border-emerald-200 px-5 py-3 text-sm font-semibold text-emerald-600 transition hover:border-emerald-400 hover:text-emerald-500"
+            className="inline-flex w-full items-center justify-center rounded-full border border-emerald-200 px-5 py-3 text-sm font-semibold text-emerald-600 transition hover:border-emerald-400 hover:text-emerald-500 md:w-fit"
           >
             View all listings
           </Link>
         </div>
 
-        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {journeyCards.map((card) => {
             const IconComponent = card.icon;
             return (
@@ -398,7 +407,7 @@ export default function Home() {
                 </div>
                 <Link
                   to={card.link}
-                  className="mt-6 inline-flex w-fit items-center justify-center rounded-full border border-emerald-200 px-4 py-2 text-xs font-semibold uppercase tracking-[0.35em] text-emerald-600 transition hover:border-emerald-400 hover:text-emerald-500"
+                  className="mt-6 inline-flex w-full items-center justify-center rounded-full border border-emerald-200 px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.35em] text-emerald-600 transition hover:border-emerald-400 hover:text-emerald-500 md:w-fit"
                 >
                   {card.linkLabel}
                 </Link>
@@ -443,7 +452,7 @@ export default function Home() {
                         </p>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-4">
+                      <div className="flex flex-col items-start gap-3 md:flex-row md:flex-wrap md:items-center md:gap-4">
                         <span className="rounded-full bg-white/15 px-4 py-2 text-sm font-medium text-white sm:text-base">
                           {listingPrice !== null
                             ? `$${listingPrice.toLocaleString()}`
@@ -458,7 +467,7 @@ export default function Home() {
                         )}
                         <Link
                           to={`/listing/${listing._id}`}
-                          className="inline-flex items-center justify-center rounded-full bg-emerald-500 px-5 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-white shadow-lg shadow-emerald-400/30 transition hover:bg-emerald-400 sm:text-sm"
+                          className="inline-flex w-full items-center justify-center rounded-full bg-emerald-500 px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.3em] text-white shadow-lg shadow-emerald-400/30 transition hover:bg-emerald-400 md:w-auto md:text-sm"
                         >
                           View details
                         </Link>
@@ -480,7 +489,7 @@ export default function Home() {
                 key={section.title}
                 className="space-y-6 rounded-3xl border border-emerald-100 bg-white p-6 shadow-lg shadow-emerald-100/60"
               >
-                <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+                <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                   <div>
                     <h2 className="text-2xl font-semibold text-slate-900">
                       {section.title}
@@ -488,12 +497,12 @@ export default function Home() {
                   </div>
                   <Link
                     to={section.link}
-                    className="inline-flex items-center justify-center rounded-full border border-emerald-200 px-4 py-2 text-sm font-semibold text-emerald-600 transition hover:border-emerald-400 hover:text-emerald-500"
+                    className="inline-flex w-full items-center justify-center rounded-full border border-emerald-200 px-4 py-2 text-sm font-semibold text-emerald-600 transition hover:border-emerald-400 hover:text-emerald-500 md:w-auto"
                   >
                     {section.linkLabel}
                   </Link>
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {section.listings.map((listing) => (
                     <ListingItem listing={listing} key={listing._id} />
                   ))}
@@ -519,7 +528,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid flex-1 gap-6 sm:grid-cols-3">
+          <div className="grid flex-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {howItWorks.map((step) => (
               <div
                 key={step.step}
@@ -554,16 +563,16 @@ export default function Home() {
               through Binio's Estate. We'll help you make decisions grounded in
               data and genuine market insight.
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-3">
+            <div className="flex w-full flex-col gap-3 md:flex-row md:flex-wrap md:justify-center">
               <Link
                 to={primaryCta.link}
-                className="inline-flex items-center justify-center rounded-full bg-emerald-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-200 transition hover:bg-emerald-400"
+                className="inline-flex w-full items-center justify-center rounded-full bg-emerald-500 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-emerald-200 transition hover:bg-emerald-400 md:w-auto"
               >
                 {primaryCta.label}
               </Link>
               <Link
                 to={secondaryCta.link}
-                className="inline-flex items-center justify-center rounded-full border border-emerald-200 px-6 py-3 text-sm font-semibold text-emerald-600 transition hover:border-emerald-400 hover:text-emerald-500"
+                className="inline-flex w-full items-center justify-center rounded-full border border-emerald-200 px-6 py-3.5 text-sm font-semibold text-emerald-600 transition hover:border-emerald-400 hover:text-emerald-500 md:w-auto"
               >
                 {secondaryCta.label}
               </Link>
