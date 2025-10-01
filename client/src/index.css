@@ -5,3 +5,40 @@
 body {
   background-color: rgb(241, 245, 241);
 }
+
+/* Mobile background overrides
+   Ensure main content containers have an explicit white background on small screens
+   This overrides transparent or semi-transparent backgrounds that may bleed through on mobile. */
+@media (max-width: 768px) {
+  .main-content,
+  .card,
+  .section,
+  .page-section,
+  .container {
+    background-color: #ffffff !important;
+  }
+
+  /* Utility selector to help override any Tailwind bg utilities if needed */
+  .bg-white-override {
+    background-color: #ffffff !important;
+  }
+
+  /* Ensure form labels and input text remain visible on small screens */
+  .form-label,
+  label,
+  .input-label {
+    display: block !important;
+    color: #0f172a !important; /* slate-900 */
+    font-size: 0.75rem !important; /* maintain readable small label */
+    margin-bottom: 0.375rem !important;
+  }
+
+  input,
+  textarea,
+  select,
+  .input,
+  .form-control {
+    color: #0f172a !important;
+    background-color: #ffffff !important;
+  }
+}
