@@ -1,5 +1,5 @@
-import React from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import {
   HiOutlineHome,
@@ -10,6 +10,7 @@ import {
   HiOutlinePlusCircle,
   HiOutlineClipboardList,
 } from "react-icons/hi";
+import { FiMenu, FiX } from "react-icons/fi";
 
 const links = [
   { to: "/admin", label: "Dashboard", end: true, icon: HiOutlineHome },
@@ -35,65 +36,102 @@ const links = [
 
 export default function AdminLayout() {
   const { currentUser } = useSelector((s) => s.user);
+  const location = useLocation();
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+
+  useEffect(() => {
+    setIsMobileNavOpen(false);
+  }, [location.pathname]);
 
   return (
-    <div className="min-h-[calc(100vh-60px)] flex bg-slate-50 dark:bg-slate-900 dark:text-slate-100 transition-colors">
-      <aside className="w-60 hidden md:flex flex-col border-r bg-white dark:bg-slate-950 dark:border-slate-800">
-        <div className="p-4 border-b dark:border-slate-800">
-          <h2 className="font-semibold text-slate-700 dark:text-slate-200">
-            Admin Panel
-          </h2>
-          {currentUser && (
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">
-              {currentUser.email}
-            </p>
+    <div className="bg-slate-50 pb-10 dark:bg-slate-900 dark:text-slate-100 transition-colors">
+      <div className="mx-auto flex min-h-[calc(100vh-60px)] w-full max-w-7xl flex-col gap-0 px-0 sm:px-4 md:flex-row md:px-6">
+        <aside className="hidden w-full max-w-xs shrink-0 flex-col border-slate-200/80 bg-white shadow-sm shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-950 md:flex">
+          <div className="border-b p-4 dark:border-slate-800">
+            <h2 className="font-semibold text-slate-700 dark:text-slate-200">
+              Admin Panel
+            </h2>
+            {currentUser && (
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">
+                {currentUser.email}
+              </p>
+            )}
+          </div>
+          <nav className="flex-1 space-y-1 p-3">
+            {links.map((l) => (
+              <NavLink
+                key={l.to}
+                to={l.to}
+                end={l.end}
+                className={({ isActive }) =>
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition " +
+                  (isActive
+                    ? "bg-slate-900 text-white shadow-sm dark:bg-slate-200 dark:text-slate-900"
+                    : "text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800")
+                }
+              >
+                <l.icon className="h-5 w-5" />
+                {l.label}
+              </NavLink>
+            ))}
+          </nav>
+          <div className="border-t p-4 text-xs text-slate-400 dark:border-slate-800 dark:text-slate-500">
+            <p>Manage the platform with the tools below.</p>
+          </div>
+        </aside>
+        <div className="flex w-full flex-1 flex-col rounded-none bg-white shadow-sm shadow-slate-900/5 ring-1 ring-slate-200/60 dark:bg-slate-950 dark:ring-slate-800 md:ml-6 md:rounded-2xl">
+          <div className="flex items-center justify-between border-b bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-950 md:hidden">
+            <div className="flex flex-col">
+              <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                Admin Panel
+              </span>
+              {currentUser?.email && (
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  {currentUser.email}
+                </span>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsMobileNavOpen((prev) => !prev)}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300/70 bg-white text-slate-600 shadow-sm transition hover:border-emerald-300 hover:text-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-emerald-500 dark:hover:text-emerald-400 dark:focus-visible:ring-offset-slate-950"
+              aria-expanded={isMobileNavOpen}
+              aria-controls="mobile-admin-nav"
+            >
+              {isMobileNavOpen ? (
+                <FiX className="h-5 w-5" />
+              ) : (
+                <FiMenu className="h-5 w-5" />
+              )}
+            </button>
+          </div>
+          {isMobileNavOpen && (
+            <nav
+              id="mobile-admin-nav"
+              className="flex flex-col gap-1 border-b bg-white px-4 pb-3 pt-2 dark:border-slate-800 dark:bg-slate-950 md:hidden"
+            >
+              {links.map((l) => (
+                <NavLink
+                  key={`${l.to}-mobile`}
+                  to={l.to}
+                  end={l.end}
+                  className={({ isActive }) =>
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition " +
+                    (isActive
+                      ? "bg-slate-900 text-white dark:bg-slate-200 dark:text-slate-900"
+                      : "text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800")
+                  }
+                >
+                  <l.icon className="h-5 w-5" />
+                  {l.label}
+                </NavLink>
+              ))}
+            </nav>
           )}
+          <main className="flex-1 space-y-6 px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+            <Outlet />
+          </main>
         </div>
-        <nav className="flex-1 p-2 space-y-1">
-          {links.map((l) => (
-            <NavLink
-              key={l.to}
-              to={l.to}
-              end={l.end}
-              className={({ isActive }) =>
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition " +
-                (isActive
-                  ? "bg-slate-900 dark:bg-slate-200 text-white dark:text-slate-900"
-                  : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800")
-              }
-            >
-              <l.icon className="h-5 w-5" />
-              {l.label}
-            </NavLink>
-          ))}
-        </nav>
-        <div className="p-4 border-t dark:border-slate-800 flex flex-col gap-2 text-xs text-slate-400 dark:text-slate-500">
-          {/* Removed theme toggle - now in header */}
-          {/* Removed © year as requested */}
-        </div>
-      </aside>
-      <div className="flex-1 flex flex-col">
-        <div className="md:hidden border-b bg-white dark:bg-slate-950 dark:border-slate-800 p-2 flex gap-2 overflow-x-auto">
-          {links.map((l) => (
-            <NavLink
-              key={l.to}
-              to={l.to}
-              end={l.end}
-              className={({ isActive }) =>
-                "flex items-center gap-2 whitespace-nowrap rounded px-3 py-1 text-sm " +
-                (isActive
-                  ? "bg-slate-900 dark:bg-slate-200 text-white dark:text-slate-900"
-                  : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300")
-              }
-            >
-              <l.icon className="h-4 w-4" />
-              {l.label}
-            </NavLink>
-          ))}
-        </div>
-        <main className="flex-1 p-4 lg:p-6">
-          <Outlet />
-        </main>
       </div>
     </div>
   );
