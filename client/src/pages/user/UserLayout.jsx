@@ -34,15 +34,13 @@ export default function UserLayout() {
   }, [location.pathname]);
 
   return (
-    <div className="bg-slate-50 pb-10 dark:bg-slate-900 dark:text-slate-100 transition-colors">
+    <div className="bg-gradient-to-br from-slate-50 via-white to-slate-100 pb-10 text-slate-900 transition-colors dark:bg-gradient-to-br dark:from-slate-50 dark:via-white dark:to-slate-100 dark:text-slate-900">
       <div className="mx-auto flex min-h-[calc(100vh-60px)] w-full max-w-7xl flex-col gap-0 px-0 sm:px-4 md:flex-row md:px-6">
-        <aside className="hidden w-full max-w-xs shrink-0 flex-col border-slate-200/80 bg-white shadow-sm shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-950 md:flex">
-          <div className="border-b p-4 dark:border-slate-800">
-            <h2 className="font-semibold text-slate-700 dark:text-slate-200">
-              Member Hub
-            </h2>
+        <aside className="hidden w-full max-w-xs shrink-0 flex-col border-slate-200/80 bg-white shadow-sm shadow-slate-900/5 dark:border-slate-200/80 dark:bg-white md:flex">
+          <div className="border-b p-4 dark:border-slate-200/80">
+            <h2 className="font-semibold text-slate-700">Member Hub</h2>
             {currentUser && (
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">
+              <p className="mt-1 truncate text-xs text-slate-500">
                 {currentUser.email}
               </p>
             )}
@@ -56,8 +54,8 @@ export default function UserLayout() {
                 className={({ isActive }) =>
                   "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition " +
                   (isActive
-                    ? "bg-slate-900 text-white shadow-sm dark:bg-slate-200 dark:text-slate-900"
-                    : "text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800")
+                    ? "bg-slate-900 text-white shadow-sm"
+                    : "text-slate-700 hover:bg-slate-100")
                 }
               >
                 <l.icon className="h-5 w-5" />
@@ -65,18 +63,18 @@ export default function UserLayout() {
               </NavLink>
             ))}
           </nav>
-          <div className="border-t p-4 text-xs text-slate-400 dark:border-slate-800 dark:text-slate-500">
+          <div className="border-t p-4 text-xs text-slate-400 dark:border-slate-200/80">
             <p>Access your saved listings and account tools.</p>
           </div>
         </aside>
-        <div className="flex w-full flex-1 flex-col rounded-none bg-white shadow-sm shadow-slate-900/5 ring-1 ring-slate-200/60 dark:bg-slate-950 dark:ring-slate-800 md:ml-6 md:rounded-2xl">
-          <div className="flex items-center justify-between border-b bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-950 md:hidden">
+        <div className="flex w-full flex-1 flex-col rounded-none bg-white shadow-sm shadow-slate-900/5 ring-1 ring-slate-200/60 dark:bg-white dark:ring-slate-200 md:ml-6 md:rounded-2xl">
+          <div className="flex items-center justify-between border-b bg-white px-4 py-3 dark:border-slate-200 md:hidden">
             <div className="flex flex-col">
-              <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+              <span className="text-sm font-semibold text-slate-700">
                 Member Hub
               </span>
               {currentUser?.email && (
-                <span className="text-xs text-slate-500 dark:text-slate-400">
+                <span className="text-xs text-slate-500">
                   {currentUser.email}
                 </span>
               )}
@@ -84,7 +82,7 @@ export default function UserLayout() {
             <button
               type="button"
               onClick={() => setIsMobileNavOpen((prev) => !prev)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300/70 bg-white text-slate-600 shadow-sm transition hover:border-emerald-300 hover:text-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-emerald-500 dark:hover:text-emerald-400 dark:focus-visible:ring-offset-slate-950"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-300/70 bg-white text-slate-600 shadow-sm transition hover:border-emerald-300 hover:text-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
               aria-expanded={isMobileNavOpen}
               aria-controls="mobile-account-nav"
             >
@@ -98,7 +96,7 @@ export default function UserLayout() {
           {isMobileNavOpen && (
             <nav
               id="mobile-account-nav"
-              className="flex flex-col gap-1 border-b bg-white px-4 pb-3 pt-2 dark:border-slate-800 dark:bg-slate-950 md:hidden"
+              className="flex flex-col gap-1 border-b bg-white px-4 pb-3 pt-2 dark:border-slate-200 md:hidden"
             >
               {links.map((l) => (
                 <NavLink
@@ -108,8 +106,8 @@ export default function UserLayout() {
                   className={({ isActive }) =>
                     "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition " +
                     (isActive
-                      ? "bg-slate-900 text-white dark:bg-slate-200 dark:text-slate-900"
-                      : "text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800")
+                      ? "bg-slate-900 text-white"
+                      : "text-slate-700 hover:bg-slate-100")
                   }
                 >
                   <l.icon className="h-5 w-5" />
