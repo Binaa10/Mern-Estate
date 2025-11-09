@@ -27,7 +27,7 @@ export default function Header() {
   const dispatch = useDispatch();
   const currentLocation = useLocation();
   const menuRef = useRef(null);
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, isDark } = useTheme();
 
   const primaryLinks = [
     { to: "/", label: "Home", match: (path) => path === "/" },
@@ -220,9 +220,15 @@ export default function Header() {
               className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-400/60 bg-[#223042] text-slate-200 shadow-sm transition hover:border-green-300 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-green-200 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1f2936] dark:border-slate-600 dark:bg-slate-800 dark:hover:border-green-500 dark:hover:text-slate-100 dark:focus-visible:ring-offset-slate-900"
             >
               {theme === "dark" ? (
-                <HiOutlineSun className="h-5 w-5" />
+                <HiOutlineSun
+                  className={`h-5 w-5 ${isDark ? "text-yellow-300" : ""}`}
+                />
               ) : (
-                <HiOutlineMoon className="h-5 w-5" />
+                <HiOutlineMoon
+                  className={`h-5 w-5 ${
+                    isDark ? "text-slate-200" : "text-slate-600"
+                  }`}
+                />
               )}
             </button>
 
@@ -237,7 +243,11 @@ export default function Header() {
               className="hidden items-center gap-2 rounded-full bg-gradient-to-r from-green-300 via-emerald-500 to-emerald-600 px-3 py-1.5 text-xs font-semibold text-slate-900 shadow-lg shadow-emerald-500/25 transition hover:from-green-200 hover:via-emerald-400 hover:to-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1f2936] dark:focus-visible:ring-offset-slate-900 md:inline-flex"
             >
               <span>List Property</span>
-              <FiArrowUpRight className="h-4 w-4" />
+              <FiArrowUpRight
+                className={`h-4 w-4 ${
+                  isDark ? "text-slate-200" : "text-white"
+                }`}
+              />
             </Link>
 
             {currentUser ? (
@@ -367,7 +377,11 @@ export default function Header() {
               className="inline-flex shrink-0 items-center gap-1 rounded-full border border-green-400/70 px-2 py-1 text-xs font-semibold text-green-200 transition hover:border-green-300 hover:text-white md:hidden"
             >
               List
-              <FiArrowUpRight className="h-3.5 w-3.5" />
+              <FiArrowUpRight
+                className={`h-3.5 w-3.5 ${
+                  isDark ? "text-slate-200" : "text-white"
+                }`}
+              />
             </Link>
           </div>
         </div>
