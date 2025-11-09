@@ -227,7 +227,13 @@ export default function Header() {
             </button>
 
             <Link
-              to={currentUser ? "/account/create-listing" : "/sign-in"}
+              to={
+                currentUser
+                  ? currentUser.isAdmin
+                    ? "/admin/create-listing"
+                    : "/account/create-listing"
+                  : "/sign-in"
+              }
               className="hidden items-center gap-2 rounded-full bg-gradient-to-r from-green-300 via-emerald-500 to-emerald-600 px-3 py-1.5 text-xs font-semibold text-slate-900 shadow-lg shadow-emerald-500/25 transition hover:from-green-200 hover:via-emerald-400 hover:to-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1f2936] dark:focus-visible:ring-offset-slate-900 md:inline-flex"
             >
               <span>List Property</span>
@@ -351,7 +357,13 @@ export default function Header() {
               })}
             </div>
             <Link
-              to={currentUser ? "/account/create-listing" : "/sign-in"}
+              to={
+                currentUser
+                  ? currentUser.isAdmin
+                    ? "/admin/create-listing"
+                    : "/account/create-listing"
+                  : "/sign-in"
+              }
               className="inline-flex shrink-0 items-center gap-1 rounded-full border border-green-400/70 px-2 py-1 text-xs font-semibold text-green-200 transition hover:border-green-300 hover:text-white md:hidden"
             >
               List

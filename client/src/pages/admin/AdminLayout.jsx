@@ -45,7 +45,7 @@ export default function AdminLayout() {
 
   return (
     <div className="bg-slate-50 pb-10 dark:bg-slate-900 dark:text-slate-100 transition-colors">
-      <div className="mx-auto flex min-h-[calc(100vh-60px)] w-full max-w-7xl flex-col gap-0 px-0 sm:px-4 md:flex-row md:px-6">
+      <div className="flex min-h-[calc(100vh-60px)] w-full flex-col gap-0 px-0 md:flex-row">
         <aside className="hidden w-full max-w-xs shrink-0 flex-col border-slate-200/80 bg-white shadow-sm shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-950 md:flex">
           <div className="border-b p-4 dark:border-slate-800">
             <h2 className="font-semibold text-slate-700 dark:text-slate-200">
@@ -79,7 +79,7 @@ export default function AdminLayout() {
             <p>Manage the platform with the tools below.</p>
           </div>
         </aside>
-        <div className="flex w-full flex-1 flex-col rounded-none bg-white shadow-sm shadow-slate-900/5 ring-1 ring-slate-200/60 dark:bg-slate-950 dark:ring-slate-800 md:ml-6 md:rounded-2xl">
+        <div className="flex w-full flex-1 flex-col rounded-none bg-white shadow-sm shadow-slate-900/5 ring-1 ring-slate-200/60 dark:bg-slate-950 dark:ring-slate-800 md:rounded-2xl">
           <div className="flex items-center justify-between border-b bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-950 md:hidden">
             <div className="flex flex-col">
               <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
